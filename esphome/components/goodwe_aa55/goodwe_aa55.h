@@ -13,6 +13,7 @@ class GoodweAA55 : public uart::UARTDevice, public Component {
  public:
   void setup() override;
   void dump_config() override;
+  void loop() override;
 
  protected:
   void parse_data();  // A method to parse the data read from the sensor hardware
@@ -23,6 +24,7 @@ class GoodweAA55 : public uart::UARTDevice, public Component {
   std::string create_hex_string(uint8_t *data, uint8_t len);
   uint8_t buffer_data_[MAX_LINE_LENGTH];
   float parsed_value_{0.0f};  // Parsed value to be published
+  int loop_counter = 0;
 };
 
 }  // namespace goodwe_aa55

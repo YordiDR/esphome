@@ -32,22 +32,18 @@ enum class READ_FUNCTION_CODE {
 
 void GoodweAA55::setup() {
   // Serial/UART device initialization is typically done here.
-  // Note that a number of read/write methods are available in the UARTDevice
-  // class. See "uart/uart.h" for details.
-  // this->write_array(HEADER, MASTER_ADDR, CONTROL_CODE::REGISTER, REG_FUNCTION_CODE::OFFLINE_QUERY);
+}
 
-  // uint8_t response;
-  // if (this->read_byte(&response)) {
-  //   this->mark_failed(); // Mark the component as failed if communication fails
-  //   return;
-  // }
-  // if (response != 0) { // Example check for a specific response
-  //   ESP_LOGE(LOGGING_TAG, "Initialization failed; response: %d", response);
-  //   this->mark_failed(); // Mark the component as failed if the response is not
-  //                        // as expected
-  //   return;
-  // }
+void GoodweAA55::dump_config() { ESP_LOGCONFIG(LOGGING_TAG, "Empty UART sensor"); }
 
+void GoodweAA55::loop() {
+  loop_counter++;
+
+  if (loop_counter < 1000) {
+    return;
+  }
+
+  loop_counter = 0;
   // Work to be done at each update interval
   uint8_t buffer_pos = 0;                  // Counter used for populating the buffer
   std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
@@ -58,6 +54,7 @@ void GoodweAA55::setup() {
   message.push_back(0x00);
   std::vector<uint8_t> crc = this->calculate_checksum(message);  // Calculate & add checksum
   message.insert(message.end(), crc.begin(), crc.end());
+  ESP_LOGD(LOGGING_TAG, "Sending message %s", this->create_hex_string(message));
 
   this->write_array(message);  // Send query running info command to inverter
   // Read the response from the device, up to MAX_LINE_LENGTH bytes
@@ -72,8 +69,6 @@ void GoodweAA55::setup() {
     this->status_set_warning();  // We can indicate a warning if no data was read
   }
 }
-
-void GoodweAA55::dump_config() { ESP_LOGCONFIG(LOGGING_TAG, "Empty UART sensor"); }
 
 void GoodweAA55::parse_data() {
   // Example parsing method
