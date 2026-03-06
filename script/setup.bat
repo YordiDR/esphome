@@ -3,7 +3,7 @@
 if defined VIRTUAL_ENV goto :install
 
 echo Starting the Virtual Environment
-python -m venv venv
+C:\Users\yordi\AppData\Local\Programs\Python\Python312\python.exe -m venv venv
 call venv/Scripts/activate
 echo Running the Virtual Environment
 
