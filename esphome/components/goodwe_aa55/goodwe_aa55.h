@@ -22,9 +22,9 @@ class GoodweAA55 : public uart::UARTDevice, public Component {
   bool verify_checksum(std::vector<uint8_t> message);  // Method that verifies the AA55 CRC checksum
   std::string create_hex_string(std::vector<uint8_t> data);  // Method that converts an array of bytes to a hex string
   std::string create_hex_string(uint8_t *data, uint8_t len);
-  uint8_t buffer_data_[MAX_LINE_LENGTH];
-  float parsed_value_{0.0f};  // Parsed value to be published
-  int loop_counter = 0;
+  // uint8_t buffer_data_[MAX_LINE_LENGTH];
+  std::vector<uint8_t> receive_buffer_;
+  int loop_counter_ = 0;
 };
 
 }  // namespace goodwe_aa55

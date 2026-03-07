@@ -38,13 +38,13 @@ void GoodweAA55::setup() {
 void GoodweAA55::dump_config() { ESP_LOGCONFIG(LOGGING_TAG, "Empty UART sensor"); }
 
 void GoodweAA55::loop() {
-  loop_counter++;
+  loop_counter_++;
 
-  if (loop_counter < 1000) {
+  if (loop_counter_ < 1000) {
     return;
   }
 
-  loop_counter = 0;
+  loop_counter_ = 0;
   // Work to be done at each update interval
   uint8_t buffer_pos = 0;                  // Counter used for populating the buffer
   std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
@@ -59,7 +59,7 @@ void GoodweAA55::loop() {
 
   this->write_array(message);  // Send query running info command to inverter
   // Read the response from the device, up to MAX_LINE_LENGTH bytes
-  while (this->available() && buffer_pos < MAX_LINE_LENGTH && this->read_byte(&this->buffer_data_[buffer_pos++])) {
+  while (this->available() && buffer_pos < MAX_LINE_LENGTH && this->read_byte(&receive_buffer_.at(buffer_pos++))) {
   }
 
   if (buffer_pos > 0) {
@@ -74,17 +74,19 @@ void GoodweAA55::loop() {
 void GoodweAA55::parse_data() {
   // Example parsing method
   // Translates data received into buffer_data_ and stores it in parsed_value_ for
-  std::vector<uint8_t> message(std::begin(this->buffer_data_), std::end(this->buffer_data_));
-  ESP_LOGD(LOGGING_TAG, "Parsing response %s (%d bytes)", this->create_hex_string(message), message.size());
+  ESP_LOGD(LOGGING_TAG, "Parsing response %s (%d bytes)", this->create_hex_string(receive_buffer_),
+           receive_buffer_.size());
 
   ESP_LOGD(LOGGING_TAG, "Verifying received checksum...");
-  if (!this->verify_checksum(message)) {
+  if (!this->verify_checksum(receive_buffer_)) {
     ESP_LOGE(LOGGING_TAG, "Response has an incorrect checksum, ignoring...");
     return;
   }
 
-  const float vpv1 = float((((uint16_t) message.at(7)) << 8) + message.at(8)) / 10;
+  const float vpv1 = float((((uint16_t) receive_buffer_.at(7)) << 8) + receive_buffer_.at(8)) / 10;
   ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %x", vpv1);
+
+  receive_buffer_.clear();  // Empty the buffer before the next iteration begins
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
