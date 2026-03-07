@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iterator>
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -73,11 +74,16 @@ void GoodweAA55::loop() {
 void GoodweAA55::parse_data() {
   // Example parsing method
   // Translates data received into buffer_data_ and stores it in parsed_value_ for
-  uint8_t message_length =
-      9 + this->buffer_data_[6];  // Intitialize message length as the sum of all non-payload bytes + the payload length
-  ESP_LOGD(LOGGING_TAG, "Parsing response %s (%d bytes)", this->create_hex_string(this->buffer_data_, message_length),
-           message_length);
-  const float vpv1 = (((uint16_t) this->buffer_data_[7] << 8) + this->buffer_data_[8]) / 10;
+  std::vector<uint8_t> message(std::begin(this->buffer_data_), std::end(this->buffer_data_));
+  ESP_LOGD(LOGGING_TAG, "Parsing response %s (%d bytes)", this->create_hex_string(message), message.size());
+
+  ESP_LOGD(LOGGING_TAG, "Verifying received checksum...");
+  if (!this->verify_checksum(message)) {
+    ESP_LOGE(LOGGING_TAG, "Response has an incorrect checksum, ignoring...");
+    return;
+  }
+
+  const float vpv1 = float((((uint16_t) message.at(7)) << 8) + message.at(8)) / 10;
   ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %x", vpv1);
 }
 
