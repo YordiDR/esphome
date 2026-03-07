@@ -94,7 +94,7 @@ void GoodweAA55::parse_data() {
   }
 
   const float vpv1 = float((((uint16_t) receive_buffer_.at(7)) << 8) + receive_buffer_.at(8)) / 10;
-  ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %x", vpv1);
+  ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %f", vpv1);
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
