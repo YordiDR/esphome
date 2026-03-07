@@ -93,15 +93,18 @@ void GoodweAA55::parse_data() {
     return;
   }
 
-  const float vpv1 = float((((uint16_t) receive_buffer_.at(7)) << 8) + receive_buffer_.at(8)) / 10;
-  ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %f", vpv1);
+  // Parse Vpv1
+  const uint16_t vpv1_high_byte = (uint16_t) receive_buffer_.at(7) << 8;
+  const uint8_t vpv1_low_byte = receive_buffer_.at(8);
+  const float vpv1 = float(vpv1_high_byte + vpv1_low_byte) / 10;
+  ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %0.1f", vpv1);
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
   uint16_t crc = 0;
   ESP_LOGD(LOGGING_TAG, "Calculating CRC for message '%s'...", this->create_hex_string(message));
   for (uint8_t byte : message) {
-    ESP_LOGD(LOGGING_TAG, "Checksum calculation: adding value %x to current CRC value (%d)", byte, crc);
+    ESP_LOGV(LOGGING_TAG, "Checksum calculation: adding value %x to current CRC value (%d)", byte, crc);
     crc += byte;
   }
 
