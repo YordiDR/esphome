@@ -9,9 +9,9 @@ namespace esphome {
 namespace goodwe_aa55 {
 
 static const char *LOGGING_TAG = "goodwe_aa55";
-const std::vector<uint8_t> HEADERS = {0xAA, 0x55};
-const uint8_t MASTER_ADDR = 0xFF;
-const uint8_t SLAVE_ADDR = 0x7F;
+const std::vector<uint8_t> HEADERS = {0xaa, 0x55};
+const uint8_t MASTER_ADDR = 0xff;
+const uint8_t SLAVE_ADDR = 0x7f;
 enum class CONTROL_CODE { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
 enum class REG_FUNCTION_CODE {
   OFFLINE_QUERY = 0x00,
@@ -54,7 +54,7 @@ void GoodweAA55::loop() {
   message.push_back(0x00);
   std::vector<uint8_t> crc = this->calculate_checksum(message);  // Calculate & add checksum
   message.insert(message.end(), crc.begin(), crc.end());
-  ESP_LOGD(LOGGING_TAG, "Sending message %s", this->create_hex_string(message));
+  ESP_LOGD(LOGGING_TAG, "Sending message %x", this->create_hex_string(message));
 
   this->write_array(message);  // Send query running info command to inverter
   // Read the response from the device, up to MAX_LINE_LENGTH bytes
@@ -75,16 +75,16 @@ void GoodweAA55::parse_data() {
   // Translates data received into buffer_data_ and stores it in parsed_value_ for
   uint8_t message_length =
       9 + this->buffer_data_[6];  // Intitialize message length as the sum of all non-payload bytes + the payload length
-  ESP_LOGD(LOGGING_TAG, "Parsing response %s", this->create_hex_string(this->buffer_data_, message_length));
+  ESP_LOGD(LOGGING_TAG, "Parsing response %x", this->create_hex_string(this->buffer_data_, message_length));
   const float vpv1 = (((uint16_t) this->buffer_data_[7] << 8) + this->buffer_data_[8]) / 10;
-  ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %f", vpv1);
+  ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %x", vpv1);
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
   uint16_t crc = 0;
-  ESP_LOGD(LOGGING_TAG, "Calculating CRC for message '%s'...", this->create_hex_string(message));
+  ESP_LOGD(LOGGING_TAG, "Calculating CRC for message '%x'...", this->create_hex_string(message));
   for (uint8_t byte : message) {
-    ESP_LOGD(LOGGING_TAG, "Checksum calculation: adding value %d to current CRC value (%d)", byte, crc);
+    ESP_LOGD(LOGGING_TAG, "Checksum calculation: adding value %x to current CRC value (%d)", byte, crc);
     crc += byte;
   }
 
@@ -105,6 +105,8 @@ bool GoodweAA55::verify_checksum(std::vector<uint8_t> message) {
   const std::vector<uint8_t> calculated_checksum = this->calculate_checksum(message);
 
   // Check if calculated CRC matches received CRC
+  ESP_LOGD(LOGGING_TAG, "Checking if CRC for received message is correct (calculated CRC: %x%x, received CRC: %x%x)",
+           calculated_checksum.at(0), calculated_checksum.at(1), crc_received_high_byte, crc_received_low_byte);
   return (calculated_checksum.at(0) == crc_received_high_byte && calculated_checksum.at(1) == crc_received_low_byte);
 }
 
