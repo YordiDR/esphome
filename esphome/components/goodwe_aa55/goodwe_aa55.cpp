@@ -140,16 +140,5 @@ std::string GoodweAA55::create_hex_string(std::vector<uint8_t> data) {
 
   return ss.str();
 }
-
-std::string GoodweAA55::create_hex_string(uint8_t *data, uint8_t len) {
-  std::stringstream ss;
-  ss << std::hex;
-
-  for (int i(0); i < len; ++i) {
-    ss << std::setw(2) << std::setfill('0') << (uint8_t) data[i];
-  }
-
-  return ss.str();
-}
 }  // namespace goodwe_aa55
 }  // namespace esphome
