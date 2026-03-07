@@ -46,8 +46,10 @@ void GoodweAA55::loop() {
 
   loop_counter_ = 0;
   // Work to be done at each update interval
-  uint8_t buffer_pos = 0;                  // Counter used for populating the buffer
-  std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
+  uint8_t buffer_byte;
+  receive_buffer_.clear();
+  uint8_t message_length = MAX_LINE_LENGTH;  // Initialize bytes to read as maximum AA55 message length
+  std::vector<uint8_t> message = HEADERS;    // Initialize message with AA55 header, then add command details
   message.push_back(MASTER_ADDR);
   message.push_back(SLAVE_ADDR);
   message.push_back((uint8_t) CONTROL_CODE::READ);
@@ -59,10 +61,18 @@ void GoodweAA55::loop() {
 
   this->write_array(message);  // Send query running info command to inverter
   // Read the response from the device, up to MAX_LINE_LENGTH bytes
-  while (this->available() && buffer_pos < MAX_LINE_LENGTH && this->read_byte(&receive_buffer_.at(buffer_pos++))) {
+  while (this->available() && receive_buffer_.size() < message_length) {
+    this->read_byte(&buffer_byte);
+
+    if (receive_buffer_.size() == 6) {  // 7th byte is payload size
+      message_length =
+          9 + buffer_byte;  // Calculate total message size = AA55 header + source address + destination address +
+                            // control code + function code + payload size byte + CRC + payload size
+    }
+    receive_buffer_.push_back(buffer_byte);
   }
 
-  if (buffer_pos > 0) {
+  if (receive_buffer_.size() > 0) {
     this->parse_data();  // If we have read some data, parse it
     // this->publish_state(this->parsed_value_);  // Publish the parsed value as a sensor state
   } else {
@@ -79,14 +89,12 @@ void GoodweAA55::parse_data() {
 
   ESP_LOGD(LOGGING_TAG, "Verifying received checksum...");
   if (!this->verify_checksum(receive_buffer_)) {
-    ESP_LOGE(LOGGING_TAG, "Response has an incorrect checksum, ignoring...");
+    ESP_LOGW(LOGGING_TAG, "Response has an incorrect checksum, ignoring...");
     return;
   }
 
   const float vpv1 = float((((uint16_t) receive_buffer_.at(7)) << 8) + receive_buffer_.at(8)) / 10;
   ESP_LOGD(LOGGING_TAG, "Parsed Vpv1: %x", vpv1);
-
-  receive_buffer_.clear();  // Empty the buffer before the next iteration begins
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
