@@ -89,7 +89,7 @@ std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message
   }
 
   ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d", crc);
-  const std::vector<uint8_t> crc_bytes = {crc >> 8 && 0xFF, crc && 0xFF};
+  const std::vector<uint8_t> crc_bytes = {(uint8_t) (crc >> 8), (uint8_t) crc};
   ESP_LOGD(LOGGING_TAG, "Returning CRC split into bytes: {%x, %x}", crc_bytes.at(0), crc_bytes.at(1));
   return crc_bytes;
 }
