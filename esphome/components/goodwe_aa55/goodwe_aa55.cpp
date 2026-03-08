@@ -129,11 +129,6 @@ void GoodweAA55::parse_data() {
   const uint32_t error_code = parse_int(receive_buffer_, 27, 4, 0);
   e_total_ = parse_int(receive_buffer_, 31, 4, 1);
   h_total_ = parse_int(receive_buffer_, 35, 4, 0);
-  temperature_fault_value_ = parse_int(receive_buffer_, 39, 2, 1);
-  vpv1_fault_value_ = parse_int(receive_buffer_, 41, 2, 1);
-  vpv2_fault_value_ = parse_int(receive_buffer_, 43, 2, 1);
-  vac1_fault_value_ = parse_int(receive_buffer_, 45, 2, 1);
-  fac1_fault_value_ = parse_int(receive_buffer_, 47, 2, 2);
   gfci_fault_value_ = parse_int(receive_buffer_, 49, 2, 0);
   e_today_ = parse_int(receive_buffer_, 51, 2, 1);
 
@@ -150,11 +145,6 @@ void GoodweAA55::parse_data() {
   ESP_LOGV(LOGGING_TAG, "Parsed error code: %d", error_code);
   ESP_LOGV(LOGGING_TAG, "Parsed E_total: %f", e_total_);
   ESP_LOGV(LOGGING_TAG, "Parsed H_total: %d", h_total_);
-  ESP_LOGV(LOGGING_TAG, "Parsed temperature fault value: %f", temperature_fault_value_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vpv1 fault value: %f", vpv1_fault_value_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vpv2 fault value: %f", vpv2_fault_value_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vac1 fault value: %f", vac1_fault_value_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Fac1 fault value: %f", fac1_fault_value_);
   ESP_LOGV(LOGGING_TAG, "Parsed GFCI fault value: %d", gfci_fault_value_);
   ESP_LOGV(LOGGING_TAG, "Parsed e_day: %f", e_today_);
 }

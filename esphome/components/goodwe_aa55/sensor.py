@@ -151,66 +151,6 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_DURATION,
             ),
             cv.Optional(
-                CONF_TEMPERATURE_FAULT_VALUE,
-                default={
-                    CONF_ID: "temperature_fault_value",
-                    CONF_NAME: "Temperature fault value",
-                },
-            ): sensor.sensor_schema(
-                unit_of_measurement=UNIT_CELSIUS,
-                accuracy_decimals=1,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_TEMPERATURE,
-            ),
-            cv.Optional(
-                CONF_VPV1_FAULT_VALUE,
-                default={
-                    CONF_ID: "vpv1_fault_value",
-                    CONF_NAME: "PV1 Voltage fault value",
-                },
-            ): sensor.sensor_schema(
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=1,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ),
-            cv.Optional(
-                CONF_VPV2_FAULT_VALUE,
-                default={
-                    CONF_ID: "vpv2_fault_value",
-                    CONF_NAME: "PV2 Voltage fault value",
-                },
-            ): sensor.sensor_schema(
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=1,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ),
-            cv.Optional(
-                CONF_VAC1_FAULT_VALUE,
-                default={
-                    CONF_ID: "vac1_fault_value",
-                    CONF_NAME: "Phase 1 Voltage fault value",
-                },
-            ): sensor.sensor_schema(
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=1,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ),
-            cv.Optional(
-                CONF_FAC1_FAULT_VALUE,
-                default={
-                    CONF_ID: "fac1_fault_value",
-                    CONF_NAME: "Phase 1 Frequency fault value",
-                },
-            ): sensor.sensor_schema(
-                unit_of_measurement=UNIT_HERTZ,
-                accuracy_decimals=2,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_FREQUENCY,
-            ),
-            cv.Optional(
                 CONF_GFCI_FAULT_VALUE,
                 default={CONF_ID: "gfci_fault_value", CONF_NAME: "GFCI fault value"},
             ): sensor.sensor_schema(
