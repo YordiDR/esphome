@@ -2,10 +2,10 @@
 #include "goodwe_aa55.h"
 #include <iomanip>
 #include <sstream>
-#include <string>
 #include <vector>
 #include <iterator>
 #include <cmath>
+#include <string>
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -88,10 +88,8 @@ void GoodweAA55::loop() {
 
   if (receive_buffer_.size() > 0) {
     this->parse_data();  // If we have read some data, parse it
-    // this->publish_state(this->parsed_value_);  // Publish the parsed value as a sensor state
   } else {
-    ESP_LOGW(LOGGING_TAG, "No data received");
-    this->status_set_warning();  // We can indicate a warning if no data was read
+    ESP_LOGW(LOGGING_TAG, "No response received");
   }
 }
 
@@ -107,6 +105,7 @@ void GoodweAA55::parse_data() {
     return;
   }
 
+  ESP_LOGD(LOGGING_TAG, "Message checksum is correct. Parsing headers...");
   ESP_LOGD(LOGGING_TAG,
            "Verifying that the packet is destined for me (my address: %x, packet destination address: %x)...",
            master_address_, receive_buffer_.at(3));
@@ -116,6 +115,8 @@ void GoodweAA55::parse_data() {
     return;
   }
 
+  ESP_LOGD(LOGGING_TAG, "Received packet is for me. Parsing payload...");
+
   vpv1_ = parse_int(receive_buffer_, 7, 2, 1);
   vpv2_ = parse_int(receive_buffer_, 9, 2, 1);
   ipv1_ = parse_int(receive_buffer_, 11, 2, 1);
@@ -124,13 +125,28 @@ void GoodweAA55::parse_data() {
   iac1_ = parse_int(receive_buffer_, 17, 2, 1);
   fac1_ = parse_int(receive_buffer_, 19, 2, 2);
   pac_ = parse_int(receive_buffer_, 21, 2, 0);
-  const uint16_t work_mode = parse_int(receive_buffer_, 23, 2, 0);
+  work_mode_code_ = parse_int(receive_buffer_, 23, 2, 0);
   temperature_ = parse_int(receive_buffer_, 25, 2, 1);
-  const uint32_t error_code = parse_int(receive_buffer_, 27, 4, 0);
+  error_codes_code_ = parse_int(receive_buffer_, 27, 4, 0);
   e_total_ = parse_int(receive_buffer_, 31, 4, 1);
   h_total_ = parse_int(receive_buffer_, 35, 4, 0);
   gfci_fault_value_ = parse_int(receive_buffer_, 49, 2, 0);
   e_today_ = parse_int(receive_buffer_, 51, 2, 1);
+
+  switch (work_mode_code_) {
+    case 0:
+      work_mode_ = "Waiting";
+      break;
+    case 1:
+      work_mode_ = "Normal";
+      break;
+    case 2:
+      work_mode_ = "Fault";
+      break;
+    default:
+      ESP_LOGI(LOGGING_TAG, "Received unknown work mode code: %x", work_mode_code_);
+      work_mode_ = "Unknown";
+  }
 
   ESP_LOGV(LOGGING_TAG, "Parsed Vpv1: %f", vpv1_);
   ESP_LOGV(LOGGING_TAG, "Parsed Vpv2: %f", vpv2_);
@@ -140,9 +156,9 @@ void GoodweAA55::parse_data() {
   ESP_LOGV(LOGGING_TAG, "Parsed Iac1: %f", iac1_);
   ESP_LOGV(LOGGING_TAG, "Parsed Fac1: %f", fac1_);
   ESP_LOGV(LOGGING_TAG, "Parsed Pac: %d", pac_);
-  ESP_LOGV(LOGGING_TAG, "Parsed work mode: %d", work_mode);
+  ESP_LOGV(LOGGING_TAG, "Parsed work mode: %d -> %s", work_mode_code_, work_mode_);
   ESP_LOGV(LOGGING_TAG, "Parsed temperature: %f", temperature_);
-  ESP_LOGV(LOGGING_TAG, "Parsed error code: %d", error_code);
+  ESP_LOGV(LOGGING_TAG, "Parsed error code: %d -> %s", error_codes_code_, error_codes_);
   ESP_LOGV(LOGGING_TAG, "Parsed E_total: %f", e_total_);
   ESP_LOGV(LOGGING_TAG, "Parsed H_total: %d", h_total_);
   ESP_LOGV(LOGGING_TAG, "Parsed GFCI fault value: %d", gfci_fault_value_);

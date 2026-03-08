@@ -4,7 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["sensor"]
+AUTO_LOAD = ["sensor", "text_sensor"]
 MULTI_CONF = True
 
 CONF_GOODWE_AA55_ID = "goodwe_aa55_id"
