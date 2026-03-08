@@ -16,11 +16,56 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   void setup() override;
   void dump_config() override;
   void loop() override;
-  void set_pac_sensor(sensor::Sensor *pac_sensor) { pac_sensor_ = pac_sensor; }
   void set_vpv1_sensor(sensor::Sensor *vpv1_sensor) { vpv1_sensor_ = vpv1_sensor; }
+  void set_vpv2_sensor(sensor::Sensor *vpv2_sensor) { vpv2_sensor_ = vpv2_sensor; }
+  void set_ipv1_sensor(sensor::Sensor *ipv1_sensor) { ipv1_sensor_ = ipv1_sensor; }
+  void set_ipv2_sensor(sensor::Sensor *ipv2_sensor) { ipv2_sensor_ = ipv2_sensor; }
+  void set_vac1_sensor(sensor::Sensor *vac1_sensor) { vac1_sensor_ = vac1_sensor; }
+  void set_iac1_sensor(sensor::Sensor *iac1_sensor) { iac1_sensor_ = iac1_sensor; }
+  void set_fac1_sensor(sensor::Sensor *fac1_sensor) { fac1_sensor_ = fac1_sensor; }
+  void set_pac_sensor(sensor::Sensor *pac_sensor) { pac_sensor_ = pac_sensor; }
+  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
+  void set_e_total_sensor(sensor::Sensor *e_total_sensor) { e_total_sensor_ = e_total_sensor; }
+  void set_h_total_sensor(sensor::Sensor *h_total_sensor) { h_total_sensor_ = h_total_sensor; }
+  void set_temperature_fault_value_sensor(sensor::Sensor *temperature_fault_value_sensor) {
+    temperature_fault_value_sensor_ = temperature_fault_value_sensor;
+  }
+  void set_vpv1_fault_value_sensor(sensor::Sensor *vpv1_fault_value_sensor) {
+    vpv1_fault_value_sensor_ = vpv1_fault_value_sensor;
+  }
+  void set_vpv2_fault_value_sensor(sensor::Sensor *vpv2_fault_value_sensor) {
+    vpv2_fault_value_sensor_ = vpv2_fault_value_sensor;
+  }
+  void set_vac1_fault_value_sensor(sensor::Sensor *vac1_fault_value_sensor) {
+    vac1_fault_value_sensor_ = vac1_fault_value_sensor;
+  }
+  void set_fac1_fault_value_sensor(sensor::Sensor *fac1_fault_value_sensor) {
+    fac1_fault_value_sensor_ = fac1_fault_value_sensor;
+  }
+  void set_gfci_fault_value_sensor(sensor::Sensor *gfci_fault_value_sensor) {
+    gfci_fault_value_sensor_ = gfci_fault_value_sensor;
+  }
+  void set_e_today_sensor(sensor::Sensor *e_today_sensor) { e_today_sensor_ = e_today_sensor; }
+
   void update() override {
-    this->pac_sensor_->publish_state(pac_);
     this->vpv1_sensor_->publish_state(vpv1_);
+    this->vpv2_sensor_->publish_state(vpv2_);
+    this->ipv1_sensor_->publish_state(ipv1_);
+    this->ipv2_sensor_->publish_state(ipv2_);
+    this->vac1_sensor_->publish_state(vac1_);
+    this->iac1_sensor_->publish_state(iac1_);
+    this->fac1_sensor_->publish_state(fac1_);
+    this->pac_sensor_->publish_state(pac_);
+    this->temperature_sensor_->publish_state(temperature_);
+    this->e_total_sensor_->publish_state(e_total_);
+    this->h_total_sensor_->publish_state(h_total_);
+    this->temperature_fault_value_sensor_->publish_state(temperature_fault_value_);
+    this->vpv1_fault_value_sensor_->publish_state(vpv1_fault_value_);
+    this->vpv2_fault_value_sensor_->publish_state(vpv2_fault_value_);
+    this->vac1_fault_value_sensor_->publish_state(vac1_fault_value_);
+    this->fac1_fault_value_sensor_->publish_state(fac1_fault_value_);
+    this->gfci_fault_value_sensor_->publish_state(gfci_fault_value_);
+    this->e_today_sensor_->publish_state(e_today_);
   }
 
  protected:
@@ -32,12 +77,44 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   uint32_t loop_counter_ = 0;
   std::vector<uint8_t> receive_buffer_;
   bool inverter_registered_ = false;
-  uint16_t pac_ = 0;
-  float vpv1_ = 0.0;
+  float vpv1_ = 0.0;                     // PV string 1 Voltage
+  float vpv2_ = 0.0;                     // PV string 2 Voltage
+  float ipv1_ = 0.0;                     // PV string 1 current
+  float ipv2_ = 0.0;                     // PV string 2 current
+  float vac1_ = 0.0;                     // Phase 1 voltage
+  float iac1_ = 0.0;                     // Phase 1 current
+  float fac1_ = 0.0;                     // Phase 1 frequency
+  uint16_t pac_ = 0;                     // AC power output
+  float temperature_ = 0.0;              // Inverter temperature
+  uint32_t e_total_ = 0;                 // Total generated energy
+  uint32_t h_total_ = 0;                 // Total inverter runtime
+  float temperature_fault_value_ = 0.0;  // Temperature fault value
+  float vpv1_fault_value_ = 0.0;         // PV string 1 voltage fault value
+  float vpv2_fault_value_ = 0.0;         // PV string 2 voltage fault value
+  float vac1_fault_value_ = 0.0;         // Phase 1 voltage fault value
+  float fac1_fault_value_ = 0.0;         // Phase 1 frequency fault value
+  uint16_t gfci_fault_value_ = 0;        // GFCI fault value
+  float e_today_ = 0.0;                  // Energy generated today
 
   // Sensors
-  sensor::Sensor *pac_sensor_{nullptr};
   sensor::Sensor *vpv1_sensor_{nullptr};
+  sensor::Sensor *vpv2_sensor_{nullptr};
+  sensor::Sensor *ipv1_sensor_{nullptr};
+  sensor::Sensor *ipv2_sensor_{nullptr};
+  sensor::Sensor *vac1_sensor_{nullptr};
+  sensor::Sensor *iac1_sensor_{nullptr};
+  sensor::Sensor *fac1_sensor_{nullptr};
+  sensor::Sensor *pac_sensor_{nullptr};
+  sensor::Sensor *temperature_sensor_{nullptr};
+  sensor::Sensor *e_total_sensor_{nullptr};
+  sensor::Sensor *h_total_sensor_{nullptr};
+  sensor::Sensor *temperature_fault_value_sensor_{nullptr};
+  sensor::Sensor *vpv1_fault_value_sensor_{nullptr};
+  sensor::Sensor *vpv2_fault_value_sensor_{nullptr};
+  sensor::Sensor *vac1_fault_value_sensor_{nullptr};
+  sensor::Sensor *fac1_fault_value_sensor_{nullptr};
+  sensor::Sensor *gfci_fault_value_sensor_{nullptr};
+  sensor::Sensor *e_today_sensor_{nullptr};
 
   // Functions
   void parse_data();  // A method to parse the data read from the sensor hardware

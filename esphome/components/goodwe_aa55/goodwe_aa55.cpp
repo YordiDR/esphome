@@ -116,47 +116,47 @@ void GoodweAA55::parse_data() {
     return;
   }
 
-  vpv1_ = parse_int(receive_buffer_, 7, 2, 1);                                 // PV string 1 voltage
-  const float vpv2 = parse_int(receive_buffer_, 9, 2, 1);                      // PV string 2 voltage
-  const float ipv1 = parse_int(receive_buffer_, 11, 2, 1);                     // PV string 1 current
-  const float ipv2 = parse_int(receive_buffer_, 13, 2, 1);                     // PV string 2 current
-  const float vac1 = parse_int(receive_buffer_, 15, 2, 1);                     // Phase 1 voltage
-  const float iac1 = parse_int(receive_buffer_, 17, 2, 1);                     // Phase 1 current
-  const float fac1 = parse_int(receive_buffer_, 19, 2, 2);                     // Phase 1 frequency
-  pac_ = parse_int(receive_buffer_, 21, 2, 0);                                 // Feeding power
-  const uint16_t work_mode = parse_int(receive_buffer_, 23, 2, 0);             // Inverter work mode
-  const float temperature = parse_int(receive_buffer_, 25, 2, 1);              // Inverter temperature
-  const uint32_t error_code = parse_int(receive_buffer_, 27, 4, 0);            // Error code
-  const float e_total = parse_int(receive_buffer_, 31, 4, 1);                  // Total generated energy
-  const uint32_t h_total = parse_int(receive_buffer_, 35, 4, 0);               // Total inverter runtime
-  const float temperature_fault_value = parse_int(receive_buffer_, 39, 2, 1);  // Temperature fault value
-  const float pv1v_fault_value = parse_int(receive_buffer_, 41, 2, 1);         // PV string 1 voltage fault value
-  const float pv2v_fault_value = parse_int(receive_buffer_, 43, 2, 1);         // PV string 2 voltage fault value
-  const float l1v_fault_value = parse_int(receive_buffer_, 45, 2, 1);          // Phase 1 voltage fault value
-  const float l1f_fault_value = parse_int(receive_buffer_, 47, 2, 2);          // Phase 1 frequency fault value
-  const uint16_t gfci_fault_value = parse_int(receive_buffer_, 49, 2, 0);      // GFCI fault value
-  const float e_day = parse_int(receive_buffer_, 51, 2, 1);                    // Energy feed into grid today
+  vpv1_ = parse_int(receive_buffer_, 7, 2, 1);
+  vpv2_ = parse_int(receive_buffer_, 9, 2, 1);
+  ipv1_ = parse_int(receive_buffer_, 11, 2, 1);
+  ipv2_ = parse_int(receive_buffer_, 13, 2, 1);
+  vac1_ = parse_int(receive_buffer_, 15, 2, 1);
+  iac1_ = parse_int(receive_buffer_, 17, 2, 1);
+  fac1_ = parse_int(receive_buffer_, 19, 2, 2);
+  pac_ = parse_int(receive_buffer_, 21, 2, 0);
+  const uint16_t work_mode = parse_int(receive_buffer_, 23, 2, 0);
+  temperature_ = parse_int(receive_buffer_, 25, 2, 1);
+  const uint32_t error_code = parse_int(receive_buffer_, 27, 4, 0);
+  e_total_ = parse_int(receive_buffer_, 31, 4, 1);
+  h_total_ = parse_int(receive_buffer_, 35, 4, 0);
+  temperature_fault_value_ = parse_int(receive_buffer_, 39, 2, 1);
+  vpv1_fault_value_ = parse_int(receive_buffer_, 41, 2, 1);
+  vpv2_fault_value_ = parse_int(receive_buffer_, 43, 2, 1);
+  vac1_fault_value_ = parse_int(receive_buffer_, 45, 2, 1);
+  fac1_fault_value_ = parse_int(receive_buffer_, 47, 2, 2);
+  gfci_fault_value_ = parse_int(receive_buffer_, 49, 2, 0);
+  e_today_ = parse_int(receive_buffer_, 51, 2, 1);
 
   ESP_LOGV(LOGGING_TAG, "Parsed Vpv1: %f", vpv1_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vpv2: %f", vpv2);
-  ESP_LOGV(LOGGING_TAG, "Parsed Ipv1: %f", ipv1);
-  ESP_LOGV(LOGGING_TAG, "Parsed Ipv1: %f", ipv2);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vac1: %f", vac1);
-  ESP_LOGV(LOGGING_TAG, "Parsed Iac1: %f", iac1);
-  ESP_LOGV(LOGGING_TAG, "Parsed Fac1: %f", fac1);
+  ESP_LOGV(LOGGING_TAG, "Parsed Vpv2: %f", vpv2_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Ipv1: %f", ipv1_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Ipv1: %f", ipv2_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Vac1: %f", vac1_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Iac1: %f", iac1_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Fac1: %f", fac1_);
   ESP_LOGV(LOGGING_TAG, "Parsed Pac: %d", pac_);
   ESP_LOGV(LOGGING_TAG, "Parsed work mode: %d", work_mode);
-  ESP_LOGV(LOGGING_TAG, "Parsed temperature: %f", temperature);
+  ESP_LOGV(LOGGING_TAG, "Parsed temperature: %f", temperature_);
   ESP_LOGV(LOGGING_TAG, "Parsed error code: %d", error_code);
-  ESP_LOGV(LOGGING_TAG, "Parsed e_total: %f", e_total);
-  ESP_LOGV(LOGGING_TAG, "Parsed h_total: %d", h_total);
-  ESP_LOGV(LOGGING_TAG, "Parsed temperature fault value: %f", temperature_fault_value);
-  ESP_LOGV(LOGGING_TAG, "Parsed pv1v fault value: %f", pv1v_fault_value);
-  ESP_LOGV(LOGGING_TAG, "Parsed pv2v fault value: %f", pv2v_fault_value);
-  ESP_LOGV(LOGGING_TAG, "Parsed l1v fault value: %f", l1v_fault_value);
-  ESP_LOGV(LOGGING_TAG, "Parsed l1f fault value: %f", l1f_fault_value);
-  ESP_LOGV(LOGGING_TAG, "Parsed GFCI fault value: %d", gfci_fault_value);
-  ESP_LOGV(LOGGING_TAG, "Parsed e_day: %f", e_day);
+  ESP_LOGV(LOGGING_TAG, "Parsed E_total: %f", e_total_);
+  ESP_LOGV(LOGGING_TAG, "Parsed H_total: %d", h_total_);
+  ESP_LOGV(LOGGING_TAG, "Parsed temperature fault value: %f", temperature_fault_value_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Vpv1 fault value: %f", vpv1_fault_value_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Vpv2 fault value: %f", vpv2_fault_value_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Vac1 fault value: %f", vac1_fault_value_);
+  ESP_LOGV(LOGGING_TAG, "Parsed Fac1 fault value: %f", fac1_fault_value_);
+  ESP_LOGV(LOGGING_TAG, "Parsed GFCI fault value: %d", gfci_fault_value_);
+  ESP_LOGV(LOGGING_TAG, "Parsed e_day: %f", e_today_);
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
