@@ -191,31 +191,28 @@ std::string GoodweAA55::create_hex_string(std::vector<uint8_t> data) {
 }
 
 float GoodweAA55::parse_int(std::vector<uint8_t> message, uint8_t start, uint8_t bytes, uint8_t precision) {
-  uint32_t response_int = 0;
+  uint32_t response = 0;
   switch (bytes) {
     case 2:
-      response_int |= message.at(start) << 8;
-      response_int |= message.at(start + 1);
+      response |= message.at(start) << 8;
+      response |= message.at(start + 1);
       break;
     case 4:
-      response_int |= message.at(start) << 24;
-      response_int |= message.at(start + 1) << 16;
-      response_int |= message.at(start + 2) << 8;
-      response_int |= message.at(start + 3);
+      response |= message.at(start) << 24;
+      response |= message.at(start + 1) << 16;
+      response |= message.at(start + 2) << 8;
+      response |= message.at(start + 3);
       break;
     default:
       ESP_LOGE(LOGGING_TAG, "Received incorrect value for bytes parameter in GoodweAA55::parse_int. Value: %d", bytes);
       return 0.0;
   }
 
-  float response_float;
   if (precision > 0) {
-    response_float = (float) response_int / std::pow(10.0, (float) precision);
-  } else {
-    response_float = (float) response_int;
+    return (float) response / std::pow(10.0, (float) precision);
   }
 
-  return response_float;
+  return (float) response;
 }
 }  // namespace goodwe_aa55
 }  // namespace esphome
