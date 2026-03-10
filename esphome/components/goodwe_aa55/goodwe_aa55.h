@@ -16,6 +16,7 @@ namespace goodwe_aa55 {
 
 static const uint8_t MAX_LINE_LENGTH = 150;  // Max characters for serial buffer, 150 bytes is the length of the
                                              // response to the "read running info list" command
+static const uint8_t INVERTER_OFFLINE_COUNTDOWN_RESET = 5;
 
 class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
  public:
@@ -45,21 +46,39 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   }
 
   void update() override {
-    this->vpv1_sensor_->publish_state(vpv1_);
-    this->vpv2_sensor_->publish_state(vpv2_);
-    this->ipv1_sensor_->publish_state(ipv1_);
-    this->ipv2_sensor_->publish_state(ipv2_);
-    this->vac1_sensor_->publish_state(vac1_);
-    this->iac1_sensor_->publish_state(iac1_);
-    this->fac1_sensor_->publish_state(fac1_);
-    this->pac_sensor_->publish_state(pac_);
-    this->work_mode_sensor_->publish_state(work_mode_);
-    this->temperature_sensor_->publish_state(temperature_);
-    this->error_codes_sensor_->publish_state(error_codes_);
-    this->e_total_sensor_->publish_state(e_total_);
-    this->h_total_sensor_->publish_state(h_total_);
-    this->gfci_fault_value_sensor_->publish_state(gfci_fault_value_);
-    this->e_today_sensor_->publish_state(e_today_);
+    if (inverter_online_) {
+      this->vpv1_sensor_->publish_state(vpv1_);
+      this->vpv2_sensor_->publish_state(vpv2_);
+      this->ipv1_sensor_->publish_state(ipv1_);
+      this->ipv2_sensor_->publish_state(ipv2_);
+      this->vac1_sensor_->publish_state(vac1_);
+      this->iac1_sensor_->publish_state(iac1_);
+      this->fac1_sensor_->publish_state(fac1_);
+      this->pac_sensor_->publish_state(pac_);
+      this->work_mode_sensor_->publish_state(work_mode_);
+      this->temperature_sensor_->publish_state(temperature_);
+      this->error_codes_sensor_->publish_state(error_codes_);
+      this->e_total_sensor_->publish_state(e_total_);
+      this->h_total_sensor_->publish_state(h_total_);
+      this->gfci_fault_value_sensor_->publish_state(gfci_fault_value_);
+      this->e_today_sensor_->publish_state(e_today_);
+    } else {
+      this->work_mode_sensor_->publish_state("Offline");
+      this->vpv1_sensor_->set_has_state(false);
+      this->vpv2_sensor_->set_has_state(false);
+      this->ipv1_sensor_->set_has_state(false);
+      this->ipv2_sensor_->set_has_state(false);
+      this->vac1_sensor_->set_has_state(false);
+      this->iac1_sensor_->set_has_state(false);
+      this->fac1_sensor_->set_has_state(false);
+      this->pac_sensor_->set_has_state(false);
+      this->temperature_sensor_->set_has_state(false);
+      this->error_codes_sensor_->set_has_state(false);
+      this->e_total_sensor_->set_has_state(false);
+      this->h_total_sensor_->set_has_state(false);
+      this->gfci_fault_value_sensor_->set_has_state(false);
+      this->e_today_sensor_->set_has_state(false);
+    }
   }
 
  protected:
@@ -70,24 +89,25 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   uint8_t update_interval_;
   uint32_t loop_counter_ = 0;
   std::vector<uint8_t> receive_buffer_;
-  bool inverter_registered_ = false;
-  float vpv1_ = 0.0;               // PV string 1 Voltage
-  float vpv2_ = 0.0;               // PV string 2 Voltage
-  float ipv1_ = 0.0;               // PV string 1 current
-  float ipv2_ = 0.0;               // PV string 2 current
-  float vac1_ = 0.0;               // Phase 1 voltage
-  float iac1_ = 0.0;               // Phase 1 current
-  float fac1_ = 0.0;               // Phase 1 frequency
-  uint16_t pac_ = 0;               // AC power output
-  std::string work_mode_ = "";     // Inverter work mode (stringified)
-  uint16_t work_mode_code_ = 0;    // Inverter work mode (Numeric, as received from inverter)
-  float temperature_ = 0.0;        // Inverter temperature
-  std::string error_codes_ = "";   // Inverter error codes (stringified)
-  uint32_t error_codes_code_ = 0;  // Inverter error codes (Numeric, as received from inverter)
-  float e_total_ = 0.0;            // Total generated energy
-  uint32_t h_total_ = 0;           // Total inverter runtime
-  uint16_t gfci_fault_value_ = 0;  // GFCI fault value
-  float e_today_ = 0.0;            // Energy generated today
+  bool inverter_online_ = false;
+  uint8_t inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
+  float vpv1_;                 // PV string 1 Voltage
+  float vpv2_;                 // PV string 2 Voltage
+  float ipv1_;                 // PV string 1 current
+  float ipv2_;                 // PV string 2 current
+  float vac1_;                 // Phase 1 voltage
+  float iac1_;                 // Phase 1 current
+  float fac1_;                 // Phase 1 frequency
+  uint16_t pac_;               // AC power output
+  std::string work_mode_;      // Inverter work mode (stringified)
+  uint16_t work_mode_code_;    // Inverter work mode (Numeric, as received from inverter)
+  float temperature_;          // Inverter temperature
+  std::string error_codes_;    // Inverter error codes (stringified)
+  uint32_t error_codes_code_;  // Inverter error codes (Numeric, as received from inverter)
+  float e_total_;              // Total generated energy
+  uint32_t h_total_;           // Total inverter runtime
+  uint16_t gfci_fault_value_;  // GFCI fault value
+  float e_today_;              // Energy generated today
 
   // Sensors
   sensor::Sensor *vpv1_sensor_{nullptr};

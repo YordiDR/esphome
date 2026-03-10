@@ -120,9 +120,21 @@ void GoodweAA55::loop() {
   }
 
   if (receive_buffer_.size() > 0) {
-    this->parse_data();  // If we have read some data, parse it
+    // Reset inverter offline counter & flag since inverter is online
+    if (!inverter_online_) {
+      inverter_online_ = true;
+      inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
+    }
+    this->parse_data();
   } else {
-    ESP_LOGW(LOGGING_TAG, "No response received");
+    ESP_LOGI(LOGGING_TAG, "No response received from inverter");
+    if (inverter_online_) {
+      inverter_offline_countdown_--;
+      if (inverter_offline_countdown_ == 0) {
+        ESP_LOGI(LOGGING_TAG, "Considering inverter offline due to countdown.");
+        inverter_online_ = false;
+      }
+    }
   }
 }
 
