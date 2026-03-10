@@ -12,6 +12,39 @@ namespace goodwe_aa55 {
 
 static const char *LOGGING_TAG = "goodwe_aa55";
 const std::vector<uint8_t> HEADERS = {0xaa, 0x55};
+const std::vector<std::string> work_mode_list = {"Waiting", "Normal", "Fault"};
+const std::vector<std::string> error_code_list = {"GFCI Device Failure",
+                                                  "AC HCT Failure",
+                                                  "Unknown bit 2",
+                                                  "DCI Consistency Failure",
+                                                  "GFCI Consistency Failure",
+                                                  "Unknown bit 5",
+                                                  "Unknown bit 6",
+                                                  "Unknown bit 7",
+                                                  "Unknown bit 8",
+                                                  "Utility Loss",
+                                                  "Ground I Failure",
+                                                  "DC Bus High",
+                                                  "Internal Version Mismatch",
+                                                  "High Temperature",
+                                                  "Auto Test Failure",
+                                                  "PV Over Voltage",
+                                                  "Fan Failure",
+                                                  "Vac Failure",
+                                                  "Isolation Failure",
+                                                  "DC Injection High",
+                                                  "Unknown bit 20",
+                                                  "Unknown bit 21",
+                                                  "Fac Consistency Failure",
+                                                  "Vac Consistency Failure",
+                                                  "Unknown bit 24",
+                                                  "Relay Check Failure",
+                                                  "Unknown bit 26",
+                                                  "Unknown bit 27",
+                                                  "Unknown bit 28",
+                                                  "Fac Failure",
+                                                  "EEPROM R/W Failure",
+                                                  "Internal Communication Failure"};
 enum class CONTROL_CODE { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
 enum class REG_FUNCTION_CODE {
   OFFLINE_QUERY = 0x00,
@@ -133,19 +166,23 @@ void GoodweAA55::parse_data() {
   gfci_fault_value_ = parse_int(receive_buffer_, 49, 2, 0);
   e_today_ = parse_int(receive_buffer_, 51, 2, 1);
 
-  switch (work_mode_code_) {
-    case 0:
-      work_mode_ = "Waiting";
-      break;
-    case 1:
-      work_mode_ = "Normal";
-      break;
-    case 2:
-      work_mode_ = "Fault";
-      break;
-    default:
-      ESP_LOGI(LOGGING_TAG, "Received unknown work mode code: %x", work_mode_code_);
-      work_mode_ = "Unknown";
+  if (work_mode_code_ > 2) {
+    work_mode_ = "Unknown: " + std::to_string(work_mode_code_);
+  } else {
+    work_mode_ = work_mode_list[work_mode_code_];
+  }
+  if (error_codes_code_) {
+    error_codes_ = "";
+    for (uint8_t i = 0; i < 32; ++i) {
+      if (error_codes_code_ & (1 << i)) {
+        if (!error_codes_.empty()) {
+          error_codes_ += ", ";
+        }
+        error_codes_ += error_code_list[i];
+      }
+    }
+  } else {
+    error_codes_ = "No errors";
   }
 
   ESP_LOGV(LOGGING_TAG, "Parsed Vpv1: %f", vpv1_);
