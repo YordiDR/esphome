@@ -72,6 +72,21 @@ GoodweAA55::GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t
 }
 
 void GoodweAA55::setup() {
+  // Mark all sensors as unavailable
+  this->vpv1_sensor_->publish_state(NAN);
+  this->vpv2_sensor_->publish_state(NAN);
+  this->ipv1_sensor_->publish_state(NAN);
+  this->ipv2_sensor_->publish_state(NAN);
+  this->vac1_sensor_->publish_state(NAN);
+  this->iac1_sensor_->publish_state(NAN);
+  this->fac1_sensor_->publish_state(NAN);
+  this->pac_sensor_->publish_state(NAN);
+  this->temperature_sensor_->publish_state(NAN);
+  this->e_total_sensor_->publish_state(NAN);
+  this->h_total_sensor_->publish_state(NAN);
+  this->gfci_fault_value_sensor_->publish_state(NAN);
+  this->e_today_sensor_->publish_state(NAN);
+
   // TODO Send deregister command to inverter address so we can register it again
 }
 

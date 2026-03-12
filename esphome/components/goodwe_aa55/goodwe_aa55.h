@@ -63,21 +63,20 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
       this->gfci_fault_value_sensor_->publish_state(gfci_fault_value_);
       this->e_today_sensor_->publish_state(e_today_);
     } else {
+      this->vpv1_sensor_->publish_state(NAN);
+      this->vpv2_sensor_->publish_state(NAN);
+      this->ipv1_sensor_->publish_state(NAN);
+      this->ipv2_sensor_->publish_state(NAN);
+      this->vac1_sensor_->publish_state(NAN);
+      this->iac1_sensor_->publish_state(NAN);
+      this->fac1_sensor_->publish_state(NAN);
+      this->pac_sensor_->publish_state(NAN);
       this->work_mode_sensor_->publish_state("Offline");
-      this->vpv1_sensor_->set_has_state(false);
-      this->vpv2_sensor_->set_has_state(false);
-      this->ipv1_sensor_->set_has_state(false);
-      this->ipv2_sensor_->set_has_state(false);
-      this->vac1_sensor_->set_has_state(false);
-      this->iac1_sensor_->set_has_state(false);
-      this->fac1_sensor_->set_has_state(false);
-      this->pac_sensor_->set_has_state(false);
-      this->temperature_sensor_->set_has_state(false);
-      this->error_codes_sensor_->set_has_state(false);
-      this->e_total_sensor_->set_has_state(false);
-      this->h_total_sensor_->set_has_state(false);
-      this->gfci_fault_value_sensor_->set_has_state(false);
-      this->e_today_sensor_->set_has_state(false);
+      this->temperature_sensor_->publish_state(NAN);
+      this->e_total_sensor_->publish_state(NAN);
+      this->h_total_sensor_->publish_state(NAN);
+      this->gfci_fault_value_sensor_->publish_state(NAN);
+      this->e_today_sensor_->publish_state(NAN);
     }
   }
 
