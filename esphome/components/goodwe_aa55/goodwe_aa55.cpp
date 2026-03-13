@@ -211,7 +211,7 @@ void GoodweAA55::parse_data() {
   GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES, )
 }
 
-std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {
+std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> &message) {
   uint16_t crc = 0;
   ESP_LOGD(LOGGING_TAG, "Calculating CRC for message '%s'...", this->create_hex_string(message));
   for (uint8_t byte : message) {
@@ -225,7 +225,7 @@ std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message
   return crc_bytes;
 }
 
-bool GoodweAA55::verify_checksum(std::vector<uint8_t> message) {
+bool GoodweAA55::verify_checksum(std::vector<uint8_t> &message) {
   // Save & remove CRC bytes from message
   const uint8_t crc_received_low_byte = message.back();
   message.pop_back();
@@ -241,7 +241,7 @@ bool GoodweAA55::verify_checksum(std::vector<uint8_t> message) {
   return (calculated_checksum.at(0) == crc_received_high_byte && calculated_checksum.at(1) == crc_received_low_byte);
 }
 
-std::string GoodweAA55::create_hex_string(std::vector<uint8_t> data) {
+std::string GoodweAA55::create_hex_string(std::vector<uint8_t> &data) {
   std::stringstream ss;
   ss << std::hex;
 
