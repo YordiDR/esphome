@@ -58,31 +58,13 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
 
  protected:
   // Internal variables
-  std::string serial_number_;
-  uint8_t slave_address_;
-  uint8_t master_address_;
-  uint8_t update_interval_;
-  uint32_t loop_counter_ = 0;
+  std::string serial_number_, v_work_mode_, v_error_codes_;
+  uint8_t slave_address_, master_address_, inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
+  uint16_t v_gfci_fault_value_, v_pac_, v_work_mode_code_, update_interval_;
+  uint32_t v_error_codes_code_, v_h_total_, loop_counter_ = 0;
   std::vector<uint8_t> receive_buffer_;
   bool inverter_online_ = false;
-  uint8_t inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
-  float v_vpv1_;                 // PV string 1 Voltage
-  float v_vpv2_;                 // PV string 2 Voltage
-  float v_ipv1_;                 // PV string 1 current
-  float v_ipv2_;                 // PV string 2 current
-  float v_vac1_;                 // Phase 1 voltage
-  float v_iac1_;                 // Phase 1 current
-  float v_fac1_;                 // Phase 1 frequency
-  uint16_t v_pac_;               // AC power output
-  std::string v_work_mode_;      // Inverter work mode (stringified)
-  uint16_t v_work_mode_code_;    // Inverter work mode (Numeric, as received from inverter)
-  float v_temperature_;          // Inverter temperature
-  std::string v_error_codes_;    // Inverter error codes (stringified)
-  uint32_t v_error_codes_code_;  // Inverter error codes (Numeric, as received from inverter)
-  float v_e_total_;              // Total generated energy
-  uint32_t v_h_total_;           // Total inverter runtime
-  uint16_t v_gfci_fault_value_;  // GFCI fault value
-  float v_e_today_;              // Energy generated today
+  float v_vpv1_, v_vpv2_, v_ipv1_, v_ipv2_, v_vac1_, v_iac1_, v_fac1_, v_temperature_, v_e_total_, v_e_today_;
 
 // Sensor member pointers
 #define GOODWE_AA55_DECLARE_SENSOR(s) sensor::Sensor *s_##s##_{nullptr};
