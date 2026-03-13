@@ -79,7 +79,15 @@ void GoodweAA55::setup() {
   this->s_work_mode_->publish_state("Ofline");
   this->s_error_codes_->publish_state("");
 
-  // TODO Send deregister command to inverter address so we can register it again
+  // Send deregister command to inverter address at ESP startup so we can register it again
+  std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
+  message.push_back(master_address_);
+  message.push_back(slave_address_);
+  message.push_back((uint8_t) CONTROL_CODE::REGISTER);
+  message.push_back((uint8_t) FUNCTION_CODE::REMOVE_REG);
+  message.push_back(0x00);
+  this->add_checksum(message);  // Calculate & add checksum
+  ESP_LOGD(LOGGING_TAG, "Sending message %s", this->create_hex_string(message));
 }
 
 void GoodweAA55::dump_config() {
@@ -100,17 +108,15 @@ void GoodweAA55::loop() {
 
   loop_counter_ = 0;
   // Work to be done at each update interval
-  uint8_t buffer_byte;
+  uint8_t buffer_byte, message_length = MAX_LINE_LENGTH;  // Initialize bytes to read as maximum AA55 message length
   receive_buffer_.clear();
-  uint8_t message_length = MAX_LINE_LENGTH;  // Initialize bytes to read as maximum AA55 message length
-  std::vector<uint8_t> message = HEADERS;    // Initialize message with AA55 header, then add command details
+  std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
   message.push_back(master_address_);
   message.push_back(0x7f);
   message.push_back((uint8_t) CONTROL_CODE::READ);
   message.push_back((uint8_t) FUNCTION_CODE::QUERY_RUN_INFO);
   message.push_back(0x00);
-  std::vector<uint8_t> crc = this->calculate_checksum(message);  // Calculate & add checksum
-  message.insert(message.end(), crc.begin(), crc.end());
+  this->add_checksum(message);  // Calculate & add checksum
   ESP_LOGD(LOGGING_TAG, "Sending message %s", this->create_hex_string(message));
 
   this->write_array(message);  // Send query running info command to inverter
@@ -152,7 +158,7 @@ void GoodweAA55::parse_data() {
            receive_buffer_.size());
 
   ESP_LOGD(LOGGING_TAG, "Verifying received checksum...");
-  if (!this->verify_checksum(receive_buffer_)) {
+  if (!this->verify_checksum(receive_buffer_)) {  // CRC checksum is removed in this function
     ESP_LOGW(LOGGING_TAG, "Response has an incorrect checksum, ignoring...");
     return;
   }
@@ -211,7 +217,7 @@ void GoodweAA55::parse_data() {
   GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES, )
 }
 
-std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> &message) {
+void GoodweAA55::add_checksum(std::vector<uint8_t> &message) {
   uint16_t crc = 0;
   ESP_LOGD(LOGGING_TAG, "Calculating CRC for message '%s'...", this->create_hex_string(message));
   for (uint8_t byte : message) {
@@ -219,10 +225,9 @@ std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> &messag
     crc += byte;
   }
 
-  ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d", crc);
-  const std::vector<uint8_t> crc_bytes = {(uint8_t) (crc >> 8), (uint8_t) crc};
-  ESP_LOGD(LOGGING_TAG, "Returning CRC split into bytes: {%x, %x}", crc_bytes.at(0), crc_bytes.at(1));
-  return crc_bytes;
+  ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d, {%x, %x}", crc, (uint8_t) (crc >> 8), (uint8_t) crc);
+  message.push_back((uint8_t) (crc >> 8));
+  message.push_back((uint8_t) crc);
 }
 
 bool GoodweAA55::verify_checksum(std::vector<uint8_t> &message) {
@@ -232,13 +237,18 @@ bool GoodweAA55::verify_checksum(std::vector<uint8_t> &message) {
   const uint8_t crc_received_high_byte = message.back();
   message.pop_back();
 
-  // Calculate CRC from message
-  const std::vector<uint8_t> calculated_checksum = this->calculate_checksum(message);
+  // Calculate CRC for message
+  this->add_checksum(message);
+
+  const uint8_t crc_calculated_low_byte = message.back();
+  message.pop_back();
+  const uint8_t crc_calculated_high_byte = message.back();
+  message.pop_back();
 
   // Check if calculated CRC matches received CRC
   ESP_LOGD(LOGGING_TAG, "Checking if CRC for received message is correct (calculated CRC: %x%x, received CRC: %x%x)",
-           calculated_checksum.at(0), calculated_checksum.at(1), crc_received_high_byte, crc_received_low_byte);
-  return (calculated_checksum.at(0) == crc_received_high_byte && calculated_checksum.at(1) == crc_received_low_byte);
+           crc_calculated_high_byte, crc_calculated_low_byte, crc_received_high_byte, crc_received_low_byte);
+  return (crc_calculated_high_byte == crc_received_high_byte && crc_calculated_low_byte == crc_received_low_byte);
 }
 
 std::string GoodweAA55::create_hex_string(std::vector<uint8_t> &data) {

@@ -75,9 +75,9 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
 
   // Functions
   void parse_data();  // A method to parse the data read from the sensor hardware
-  std::vector<uint8_t> calculate_checksum(
-      std::vector<uint8_t> &message);                   // Method that calculates the CRC checksum for an AA55 message
-  bool verify_checksum(std::vector<uint8_t> &message);  // Method that verifies the AA55 CRC checksum
+  void add_checksum(
+      std::vector<uint8_t> &message);  // Method that calculates and adds the CRC checksum to the AA55 message
+  bool verify_checksum(std::vector<uint8_t> &message);        // Method that verifies the AA55 CRC checksum
   std::string create_hex_string(std::vector<uint8_t> &data);  // Method that converts an array of bytes to a hex string
   float parse_int(std::vector<uint8_t> message, uint8_t start, uint8_t bytes, uint8_t precision);
 };
