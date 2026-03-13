@@ -46,15 +46,16 @@ const std::vector<std::string> error_code_list = {"GFCI Device Failure",
                                                   "EEPROM R/W Failure",
                                                   "Internal Communication Failure"};
 enum class CONTROL_CODE { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
-enum class REG_FUNCTION_CODE {
+enum class FUNCTION_CODE {
+  // Register function codes
   OFFLINE_QUERY = 0x00,
   ALLOC_REG_ADDR = 0x01,
   REMOVE_REG = 0x02,
   REG_REQUEST = 0x80,
   ADDR_CONFIRM = 0x81,
-  REMOVE_CONFIRM = 0x82
-};
-enum class READ_FUNCTION_CODE {
+  REMOVE_CONFIRM = 0x82,
+
+  // Register function codes
   QUERY_RUN_INFO = 0x01,
   QUERY_ID_INFO = 0x02,
   QUERY_SET_INFO = 0x03,
@@ -73,19 +74,10 @@ GoodweAA55::GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t
 
 void GoodweAA55::setup() {
   // Mark all sensors as unavailable
-  this->vpv1_sensor_->publish_state(NAN);
-  this->vpv2_sensor_->publish_state(NAN);
-  this->ipv1_sensor_->publish_state(NAN);
-  this->ipv2_sensor_->publish_state(NAN);
-  this->vac1_sensor_->publish_state(NAN);
-  this->iac1_sensor_->publish_state(NAN);
-  this->fac1_sensor_->publish_state(NAN);
-  this->pac_sensor_->publish_state(NAN);
-  this->temperature_sensor_->publish_state(NAN);
-  this->e_total_sensor_->publish_state(NAN);
-  this->h_total_sensor_->publish_state(NAN);
-  this->gfci_fault_value_sensor_->publish_state(NAN);
-  this->e_today_sensor_->publish_state(NAN);
+#define GOODWE_AA55_SET_SENSOR_UNAVAILABLE(s) this->s_##s##_->publish_state(NAN);
+  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR_UNAVAILABLE, )
+  this->s_work_mode_->publish_state("Ofline");
+  this->s_error_codes_->publish_state("");
 
   // TODO Send deregister command to inverter address so we can register it again
 }
@@ -115,7 +107,7 @@ void GoodweAA55::loop() {
   message.push_back(master_address_);
   message.push_back(0x7f);
   message.push_back((uint8_t) CONTROL_CODE::READ);
-  message.push_back((uint8_t) READ_FUNCTION_CODE::QUERY_RUN_INFO);
+  message.push_back((uint8_t) FUNCTION_CODE::QUERY_RUN_INFO);
   message.push_back(0x00);
   std::vector<uint8_t> crc = this->calculate_checksum(message);  // Calculate & add checksum
   message.insert(message.end(), crc.begin(), crc.end());
@@ -177,56 +169,46 @@ void GoodweAA55::parse_data() {
 
   ESP_LOGD(LOGGING_TAG, "Received packet is for me. Parsing payload...");
 
-  vpv1_ = parse_int(receive_buffer_, 7, 2, 1);
-  vpv2_ = parse_int(receive_buffer_, 9, 2, 1);
-  ipv1_ = parse_int(receive_buffer_, 11, 2, 1);
-  ipv2_ = parse_int(receive_buffer_, 13, 2, 1);
-  vac1_ = parse_int(receive_buffer_, 15, 2, 1);
-  iac1_ = parse_int(receive_buffer_, 17, 2, 1);
-  fac1_ = parse_int(receive_buffer_, 19, 2, 2);
-  pac_ = parse_int(receive_buffer_, 21, 2, 0);
-  work_mode_code_ = parse_int(receive_buffer_, 23, 2, 0);
-  temperature_ = parse_int(receive_buffer_, 25, 2, 1);
-  error_codes_code_ = parse_int(receive_buffer_, 27, 4, 0);
-  e_total_ = parse_int(receive_buffer_, 31, 4, 1);
-  h_total_ = parse_int(receive_buffer_, 35, 4, 0);
-  gfci_fault_value_ = parse_int(receive_buffer_, 49, 2, 0);
-  e_today_ = parse_int(receive_buffer_, 51, 2, 1);
+  v_vpv1_ = parse_int(receive_buffer_, 7, 2, 1);
+  v_vpv2_ = parse_int(receive_buffer_, 9, 2, 1);
+  v_ipv1_ = parse_int(receive_buffer_, 11, 2, 1);
+  v_ipv2_ = parse_int(receive_buffer_, 13, 2, 1);
+  v_vac1_ = parse_int(receive_buffer_, 15, 2, 1);
+  v_iac1_ = parse_int(receive_buffer_, 17, 2, 1);
+  v_fac1_ = parse_int(receive_buffer_, 19, 2, 2);
+  v_pac_ = parse_int(receive_buffer_, 21, 2, 0);
+  v_work_mode_code_ = parse_int(receive_buffer_, 23, 2, 0);
+  v_temperature_ = parse_int(receive_buffer_, 25, 2, 1);
+  v_error_codes_code_ = parse_int(receive_buffer_, 27, 4, 0);
+  v_e_total_ = parse_int(receive_buffer_, 31, 4, 1);
+  v_h_total_ = parse_int(receive_buffer_, 35, 4, 0);
+  v_gfci_fault_value_ = parse_int(receive_buffer_, 49, 2, 0);
+  v_e_today_ = parse_int(receive_buffer_, 51, 2, 1);
 
-  if (work_mode_code_ > 2) {
-    work_mode_ = "Unknown: " + std::to_string(work_mode_code_);
+  if (v_work_mode_code_ > 2) {
+    v_work_mode_ = "Unknown: " + std::to_string(v_work_mode_code_);
   } else {
-    work_mode_ = work_mode_list[work_mode_code_];
+    v_work_mode_ = work_mode_list[v_work_mode_code_];
   }
-  if (error_codes_code_) {
-    error_codes_ = "";
+  if (v_error_codes_code_) {
+    v_error_codes_ = "";
     for (uint8_t i = 0; i < 32; ++i) {
-      if (error_codes_code_ & (1 << i)) {
-        if (!error_codes_.empty()) {
-          error_codes_ += ", ";
+      if (v_error_codes_code_ & (1 << i)) {
+        if (!v_error_codes_.empty()) {
+          v_error_codes_ += ", ";
         }
-        error_codes_ += error_code_list[i];
+        v_error_codes_ += error_code_list[i];
       }
     }
   } else {
-    error_codes_ = "No errors";
+    v_error_codes_ = "No errors";
   }
 
-  ESP_LOGV(LOGGING_TAG, "Parsed Vpv1: %f", vpv1_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vpv2: %f", vpv2_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Ipv1: %f", ipv1_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Ipv1: %f", ipv2_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Vac1: %f", vac1_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Iac1: %f", iac1_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Fac1: %f", fac1_);
-  ESP_LOGV(LOGGING_TAG, "Parsed Pac: %d", pac_);
-  ESP_LOGV(LOGGING_TAG, "Parsed work mode: %d -> %s", work_mode_code_, work_mode_);
-  ESP_LOGV(LOGGING_TAG, "Parsed temperature: %f", temperature_);
-  ESP_LOGV(LOGGING_TAG, "Parsed error code: %d -> %s", error_codes_code_, error_codes_);
-  ESP_LOGV(LOGGING_TAG, "Parsed E_total: %f", e_total_);
-  ESP_LOGV(LOGGING_TAG, "Parsed H_total: %d", h_total_);
-  ESP_LOGV(LOGGING_TAG, "Parsed GFCI fault value: %d", gfci_fault_value_);
-  ESP_LOGV(LOGGING_TAG, "Parsed e_day: %f", e_today_);
+#define GOODWE_AA55_PRINT_SENSOR_VALUES(s) ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", s, (float) v_##s);
+  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PRINT_SENSOR_VALUES, )
+#define GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES(s) \
+  ESP_LOGV(LOGGING_TAG, "Parsed %s: %d -> %s", s, v_##s##_code_, v_##s##_);
+  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES, )
 }
 
 std::vector<uint8_t> GoodweAA55::calculate_checksum(std::vector<uint8_t> message) {

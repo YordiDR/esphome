@@ -11,6 +11,14 @@
 #endif
 #include <string>
 
+#ifndef GOODWE_AA55_SENSOR_LIST
+#define GOODWE_AA55_SENSOR_LIST(F, SEP)
+#endif
+
+#ifndef GOODWE_AA55_TEXT_SENSOR_LIST
+#define GOODWE_AA55_TEXT_SENSOR_LIST(F, SEP)
+#endif
+
 namespace esphome {
 namespace goodwe_aa55 {
 
@@ -24,59 +32,27 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   void setup() override;
   void dump_config() override;
   void loop() override;
-  void set_vpv1_sensor(sensor::Sensor *vpv1_sensor) { vpv1_sensor_ = vpv1_sensor; }
-  void set_vpv2_sensor(sensor::Sensor *vpv2_sensor) { vpv2_sensor_ = vpv2_sensor; }
-  void set_ipv1_sensor(sensor::Sensor *ipv1_sensor) { ipv1_sensor_ = ipv1_sensor; }
-  void set_ipv2_sensor(sensor::Sensor *ipv2_sensor) { ipv2_sensor_ = ipv2_sensor; }
-  void set_vac1_sensor(sensor::Sensor *vac1_sensor) { vac1_sensor_ = vac1_sensor; }
-  void set_iac1_sensor(sensor::Sensor *iac1_sensor) { iac1_sensor_ = iac1_sensor; }
-  void set_fac1_sensor(sensor::Sensor *fac1_sensor) { fac1_sensor_ = fac1_sensor; }
-  void set_pac_sensor(sensor::Sensor *pac_sensor) { pac_sensor_ = pac_sensor; }
-  void set_work_mode_sensor(text_sensor::TextSensor *work_mode_sensor) { work_mode_sensor_ = work_mode_sensor; }
-  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
-  void set_error_codes_sensor(text_sensor::TextSensor *error_codes_sensor) { error_codes_sensor_ = error_codes_sensor; }
-  void set_e_total_sensor(sensor::Sensor *e_total_sensor) { e_total_sensor_ = e_total_sensor; }
-  void set_h_total_sensor(sensor::Sensor *h_total_sensor) { h_total_sensor_ = h_total_sensor; }
-  void set_gfci_fault_value_sensor(sensor::Sensor *gfci_fault_value_sensor) {
-    gfci_fault_value_sensor_ = gfci_fault_value_sensor;
-  }
-  void set_e_today_sensor(sensor::Sensor *e_today_sensor) {
-    e_today_sensor_ = e_today_sensor;
-    // ESP_LOGD("goodwe_aa55", "Added e_today sensor with name: %s", e_today_sensor_->get_name());
-  }
+
+// Sensor setters
+#define GOODWE_AA55_SET_SENSOR(s) \
+  void set_##s(sensor::Sensor *sensor) { s_##s##_ = sensor; }
+  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR, )
+
+#define GOODWE_AA55_SET_TEXT_SENSOR(s) \
+  void set_##s(text_sensor::TextSensor *sensor) { s_##s##_ = sensor; }
+  GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_SET_TEXT_SENSOR, )
 
   void update() override {
     if (inverter_online_) {
-      this->vpv1_sensor_->publish_state(vpv1_);
-      this->vpv2_sensor_->publish_state(vpv2_);
-      this->ipv1_sensor_->publish_state(ipv1_);
-      this->ipv2_sensor_->publish_state(ipv2_);
-      this->vac1_sensor_->publish_state(vac1_);
-      this->iac1_sensor_->publish_state(iac1_);
-      this->fac1_sensor_->publish_state(fac1_);
-      this->pac_sensor_->publish_state(pac_);
-      this->work_mode_sensor_->publish_state(work_mode_);
-      this->temperature_sensor_->publish_state(temperature_);
-      this->error_codes_sensor_->publish_state(error_codes_);
-      this->e_total_sensor_->publish_state(e_total_);
-      this->h_total_sensor_->publish_state(h_total_);
-      this->gfci_fault_value_sensor_->publish_state(gfci_fault_value_);
-      this->e_today_sensor_->publish_state(e_today_);
+#define GOODWE_AA55_PUBLISH_SENSOR_STATE(s) this->s_##s##_->publish_state(v_##s##_);
+      GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PUBLISH_SENSOR_STATE, )
+#define GOODWE_AA55_PUBLISH_TEXT_SENSOR_STATE(s) this->s_##s##_->publish_state(v_##s##_);
+      GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_PUBLISH_TEXT_SENSOR_STATE, )
     } else {
-      this->vpv1_sensor_->publish_state(NAN);
-      this->vpv2_sensor_->publish_state(NAN);
-      this->ipv1_sensor_->publish_state(NAN);
-      this->ipv2_sensor_->publish_state(NAN);
-      this->vac1_sensor_->publish_state(NAN);
-      this->iac1_sensor_->publish_state(NAN);
-      this->fac1_sensor_->publish_state(NAN);
-      this->pac_sensor_->publish_state(NAN);
-      this->work_mode_sensor_->publish_state("Offline");
-      this->temperature_sensor_->publish_state(NAN);
-      this->e_total_sensor_->publish_state(NAN);
-      this->h_total_sensor_->publish_state(NAN);
-      this->gfci_fault_value_sensor_->publish_state(NAN);
-      this->e_today_sensor_->publish_state(NAN);
+#define GOODWE_AA55_SET_SENSOR_UNAVAILABLE(s) this->s_##s##_->publish_state(NAN);
+      GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR_UNAVAILABLE, )
+      this->s_work_mode_->publish_state("Offline");
+      this->s_error_codes_->publish_state("");
     }
   }
 
@@ -90,40 +66,30 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   std::vector<uint8_t> receive_buffer_;
   bool inverter_online_ = false;
   uint8_t inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
-  float vpv1_;                 // PV string 1 Voltage
-  float vpv2_;                 // PV string 2 Voltage
-  float ipv1_;                 // PV string 1 current
-  float ipv2_;                 // PV string 2 current
-  float vac1_;                 // Phase 1 voltage
-  float iac1_;                 // Phase 1 current
-  float fac1_;                 // Phase 1 frequency
-  uint16_t pac_;               // AC power output
-  std::string work_mode_;      // Inverter work mode (stringified)
-  uint16_t work_mode_code_;    // Inverter work mode (Numeric, as received from inverter)
-  float temperature_;          // Inverter temperature
-  std::string error_codes_;    // Inverter error codes (stringified)
-  uint32_t error_codes_code_;  // Inverter error codes (Numeric, as received from inverter)
-  float e_total_;              // Total generated energy
-  uint32_t h_total_;           // Total inverter runtime
-  uint16_t gfci_fault_value_;  // GFCI fault value
-  float e_today_;              // Energy generated today
+  float v_vpv1_;                 // PV string 1 Voltage
+  float v_vpv2_;                 // PV string 2 Voltage
+  float v_ipv1_;                 // PV string 1 current
+  float v_ipv2_;                 // PV string 2 current
+  float v_vac1_;                 // Phase 1 voltage
+  float v_iac1_;                 // Phase 1 current
+  float v_fac1_;                 // Phase 1 frequency
+  uint16_t v_pac_;               // AC power output
+  std::string v_work_mode_;      // Inverter work mode (stringified)
+  uint16_t v_work_mode_code_;    // Inverter work mode (Numeric, as received from inverter)
+  float v_temperature_;          // Inverter temperature
+  std::string v_error_codes_;    // Inverter error codes (stringified)
+  uint32_t v_error_codes_code_;  // Inverter error codes (Numeric, as received from inverter)
+  float v_e_total_;              // Total generated energy
+  uint32_t v_h_total_;           // Total inverter runtime
+  uint16_t v_gfci_fault_value_;  // GFCI fault value
+  float v_e_today_;              // Energy generated today
 
-  // Sensors
-  sensor::Sensor *vpv1_sensor_{nullptr};
-  sensor::Sensor *vpv2_sensor_{nullptr};
-  sensor::Sensor *ipv1_sensor_{nullptr};
-  sensor::Sensor *ipv2_sensor_{nullptr};
-  sensor::Sensor *vac1_sensor_{nullptr};
-  sensor::Sensor *iac1_sensor_{nullptr};
-  sensor::Sensor *fac1_sensor_{nullptr};
-  sensor::Sensor *pac_sensor_{nullptr};
-  text_sensor::TextSensor *work_mode_sensor_{nullptr};
-  sensor::Sensor *temperature_sensor_{nullptr};
-  text_sensor::TextSensor *error_codes_sensor_{nullptr};
-  sensor::Sensor *e_total_sensor_{nullptr};
-  sensor::Sensor *h_total_sensor_{nullptr};
-  sensor::Sensor *gfci_fault_value_sensor_{nullptr};
-  sensor::Sensor *e_today_sensor_{nullptr};
+// Sensor member pointers
+#define GOODWE_AA55_DECLARE_SENSOR(s) sensor::Sensor *s_##s##_{nullptr};
+  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_DECLARE_SENSOR, )
+
+#define GOODWE_AA55_DECLARE_TEXT_SENSOR(s) text_sensor::TextSensor *s_##s##_{nullptr};
+  GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_DECLARE_TEXT_SENSOR, )
 
   // Functions
   void parse_data();  // A method to parse the data read from the sensor hardware

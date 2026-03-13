@@ -181,10 +181,17 @@ CONFIG_SCHEMA = (
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_GOODWE_AA55_ID])
 
+    sensors = []
     for key, conf in config.items():
         if not isinstance(conf, dict):
             continue
         id = conf[CONF_ID]
         if id and id.type == sensor.Sensor:
             sens = await sensor.new_sensor(conf)
-            cg.add(getattr(hub, f"set_{key}_sensor")(sens))
+            cg.add(getattr(hub, f"set_{key}")(sens))
+            sensors.append(f"F({key})")
+
+    if sensors:
+        cg.add_define(
+            "GOODWE_AA55_SENSOR_LIST(F, sep)", cg.RawExpression(" sep ".join(sensors))
+        )
