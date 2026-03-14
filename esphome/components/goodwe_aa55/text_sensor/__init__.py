@@ -3,23 +3,32 @@ from esphome.components import text_sensor
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_NAME
 
-from . import CONF_GOODWE_AA55_ID, HUB_CHILD_SCHEMA
+from .. import CONF_GOODWE_AA55_ID, HUB_CHILD_SCHEMA, goodwe_aa55_ns
 
 DEPENDENCIES = ["goodwe_aa55"]
 
 CONF_WORK_MODE = "work_mode"
 CONF_ERROR_CODES = "error_codes"
+CONF_SKIP_UPDATES = "skip_updates"
+
+GoodweAA55TextSensor = goodwe_aa55_ns.class_(
+    "GoodweAA55TextSensor", text_sensor.TextSensor, cg.Component
+)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.Optional(
                 CONF_WORK_MODE, default={CONF_ID: "work_mode", CONF_NAME: "Work mode"}
-            ): text_sensor.text_sensor_schema(),
+            ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
+                {cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}
+            ),
             cv.Optional(
                 CONF_ERROR_CODES,
                 default={CONF_ID: "error_codes", CONF_NAME: "Error codes"},
-            ): text_sensor.text_sensor_schema(),
+            ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
+                {cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}
+            ),
         }
     )
     .extend(HUB_CHILD_SCHEMA)
@@ -37,7 +46,9 @@ async def to_code(config):
         id = conf[CONF_ID]
         if id and id.type == text_sensor.TextSensor:
             sens = await text_sensor.new_text_sensor(conf)
+            # await cg.register_component(sens, conf)
             cg.add(getattr(hub, f"set_{key}")(sens))
+            cg.add(sens.set_skip_updates(conf[CONF_SKIP_UPDATES]))
             text_sensors.append(f"F({key})")
 
     if text_sensors:

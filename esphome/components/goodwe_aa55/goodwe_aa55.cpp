@@ -1,5 +1,6 @@
 #include "esphome/core/log.h"
 #include "goodwe_aa55.h"
+#include "const.h"
 #include <iomanip>
 #include <sstream>
 #include <vector>
@@ -9,60 +10,6 @@
 
 namespace esphome {
 namespace goodwe_aa55 {
-
-static const char *LOGGING_TAG = "goodwe_aa55";
-const std::vector<uint8_t> HEADERS = {0xaa, 0x55};
-const std::vector<std::string> work_mode_list = {"Waiting", "Normal", "Fault"};
-const std::vector<std::string> error_code_list = {"GFCI Device Failure",
-                                                  "AC HCT Failure",
-                                                  "Unknown bit 2",
-                                                  "DCI Consistency Failure",
-                                                  "GFCI Consistency Failure",
-                                                  "Unknown bit 5",
-                                                  "Unknown bit 6",
-                                                  "Unknown bit 7",
-                                                  "Unknown bit 8",
-                                                  "Utility Loss",
-                                                  "Ground I Failure",
-                                                  "DC Bus High",
-                                                  "Internal Version Mismatch",
-                                                  "High Temperature",
-                                                  "Auto Test Failure",
-                                                  "PV Over Voltage",
-                                                  "Fan Failure",
-                                                  "Vac Failure",
-                                                  "Isolation Failure",
-                                                  "DC Injection High",
-                                                  "Unknown bit 20",
-                                                  "Unknown bit 21",
-                                                  "Fac Consistency Failure",
-                                                  "Vac Consistency Failure",
-                                                  "Unknown bit 24",
-                                                  "Relay Check Failure",
-                                                  "Unknown bit 26",
-                                                  "Unknown bit 27",
-                                                  "Unknown bit 28",
-                                                  "Fac Failure",
-                                                  "EEPROM R/W Failure",
-                                                  "Internal Communication Failure"};
-enum class CONTROL_CODE { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
-enum class FUNCTION_CODE {
-  // Register function codes
-  OFFLINE_QUERY = 0x00,
-  ALLOC_REG_ADDR = 0x01,
-  REMOVE_REG = 0x02,
-  REG_REQUEST = 0x80,
-  ADDR_CONFIRM = 0x81,
-  REMOVE_CONFIRM = 0x82,
-
-  // Register function codes
-  QUERY_RUN_INFO = 0x01,
-  QUERY_ID_INFO = 0x02,
-  QUERY_SET_INFO = 0x03,
-  RUN_INFO_RESPONSE = 0x81,
-  ID_INFO_RESPONSE = 0x82,
-  SET_INFO_RESPONSE = 0x83
-};
 
 GoodweAA55::GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t master_address,
                        uint32_t update_interval) {
@@ -148,6 +95,36 @@ void GoodweAA55::loop() {
         inverter_online_ = false;
       }
     }
+  }
+}
+
+void GoodweAA55::update() {
+  if (this->inverter_online_) {
+#define GOODWE_AA55_PUBLISH_SENSOR_STATE(s) \
+  if (s_##s##_->time_to_update()) { \
+    this->s_##s##_->publish_state(this->v_##s##_); \
+    if (s_##s##_->get_skip_updates() != 0) { \
+      this->s_##s##_->reset_skipped_updates(); \
+    } \
+  } else { \
+    this->s_##s##_->increment_skipped_updates(); \
+  }
+    GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PUBLISH_SENSOR_STATE, )
+#define GOODWE_AA55_PUBLISH_TEXT_SENSOR_STATE(s) \
+  if (s_##s##_->time_to_update()) { \
+    this->s_##s##_->publish_state(this->v_##s##_); \
+    if (s_##s##_->get_skip_updates() != 0) { \
+      this->s_##s##_->reset_skipped_updates(); \
+    } \
+  } else { \
+    this->s_##s##_->increment_skipped_updates(); \
+  }
+    GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_PUBLISH_TEXT_SENSOR_STATE, )
+  } else {
+#define GOODWE_AA55_SET_SENSOR_UNAVAILABLE(s) this->s_##s##_->publish_state(NAN);
+    GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR_UNAVAILABLE, )
+    this->s_work_mode_->publish_state("Offline");
+    this->s_error_codes_->publish_state("");
   }
 }
 

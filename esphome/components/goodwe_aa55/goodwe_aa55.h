@@ -4,10 +4,10 @@
 #include "esphome/core/defines.h"
 #include "esphome/components/uart/uart.h"
 #ifdef USE_SENSOR
-#include "esphome/components/sensor/sensor.h"
+#include "sensor/goodwe_aa55_sensor.h"
 #endif
 #ifdef USE_TEXT_SENSOR
-#include "esphome/components/text_sensor/text_sensor.h"
+#include "text_sensor/goodwe_aa55_text_sensor.h"
 #endif
 #include <string>
 
@@ -22,10 +22,6 @@
 namespace esphome {
 namespace goodwe_aa55 {
 
-static const uint8_t MAX_LINE_LENGTH = 150;  // Max characters for serial buffer, 150 bytes is the length of the
-                                             // response to the "read running info list" command
-static const uint8_t INVERTER_OFFLINE_COUNTDOWN_RESET = 5;
-
 class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
  public:
   GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t master_address, uint32_t update_interval);
@@ -35,26 +31,14 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
 
 // Sensor setters
 #define GOODWE_AA55_SET_SENSOR(s) \
-  void set_##s(sensor::Sensor *sensor) { s_##s##_ = sensor; }
+  void set_##s(GoodweAA55Sensor *sensor) { s_##s##_ = sensor; }
   GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR, )
 
 #define GOODWE_AA55_SET_TEXT_SENSOR(s) \
-  void set_##s(text_sensor::TextSensor *sensor) { s_##s##_ = sensor; }
+  void set_##s(GoodweAA55TextSensor *sensor) { s_##s##_ = sensor; }
   GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_SET_TEXT_SENSOR, )
 
-  void update() override {
-    if (inverter_online_) {
-#define GOODWE_AA55_PUBLISH_SENSOR_STATE(s) this->s_##s##_->publish_state(v_##s##_);
-      GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PUBLISH_SENSOR_STATE, )
-#define GOODWE_AA55_PUBLISH_TEXT_SENSOR_STATE(s) this->s_##s##_->publish_state(v_##s##_);
-      GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_PUBLISH_TEXT_SENSOR_STATE, )
-    } else {
-#define GOODWE_AA55_SET_SENSOR_UNAVAILABLE(s) this->s_##s##_->publish_state(NAN);
-      GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR_UNAVAILABLE, )
-      this->s_work_mode_->publish_state("Offline");
-      this->s_error_codes_->publish_state("");
-    }
-  }
+  void update() override;
 
  protected:
   // Internal variables
@@ -67,10 +51,10 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   float v_vpv1_, v_vpv2_, v_ipv1_, v_ipv2_, v_vac1_, v_iac1_, v_fac1_, v_temperature_, v_e_total_, v_e_today_;
 
 // Sensor member pointers
-#define GOODWE_AA55_DECLARE_SENSOR(s) sensor::Sensor *s_##s##_{nullptr};
+#define GOODWE_AA55_DECLARE_SENSOR(s) GoodweAA55Sensor *s_##s##_{nullptr};
   GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_DECLARE_SENSOR, )
 
-#define GOODWE_AA55_DECLARE_TEXT_SENSOR(s) text_sensor::TextSensor *s_##s##_{nullptr};
+#define GOODWE_AA55_DECLARE_TEXT_SENSOR(s) GoodweAA55TextSensor *s_##s##_{nullptr};
   GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_DECLARE_TEXT_SENSOR, )
 
   // Functions
