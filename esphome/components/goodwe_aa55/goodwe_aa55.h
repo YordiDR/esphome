@@ -3,21 +3,9 @@
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/components/uart/uart.h"
-#ifdef USE_SENSOR
 #include "sensor/goodwe_aa55_sensor.h"
-#endif
-#ifdef USE_TEXT_SENSOR
 #include "text_sensor/goodwe_aa55_text_sensor.h"
-#endif
 #include <string>
-
-#ifndef GOODWE_AA55_SENSOR_LIST
-#define GOODWE_AA55_SENSOR_LIST(F, SEP)
-#endif
-
-#ifndef GOODWE_AA55_TEXT_SENSOR_LIST
-#define GOODWE_AA55_TEXT_SENSOR_LIST(F, SEP)
-#endif
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -28,34 +16,20 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   void setup() override;
   void dump_config() override;
   void loop() override;
-
-// Sensor setters
-#define GOODWE_AA55_SET_SENSOR(s) \
-  void set_##s(GoodweAA55Sensor *sensor) { s_##s##_ = sensor; }
-  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_SET_SENSOR, )
-
-#define GOODWE_AA55_SET_TEXT_SENSOR(s) \
-  void set_##s(GoodweAA55TextSensor *sensor) { s_##s##_ = sensor; }
-  GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_SET_TEXT_SENSOR, )
-
   void update() override;
+  void add_sensor(GoodweAA55Sensor *sensor);
+  void add_text_sensor(GoodweAA55TextSensor *sensor);
 
  protected:
   // Internal variables
-  std::string serial_number_, v_work_mode_, v_error_codes_;
+  std::string serial_number_;
   uint8_t slave_address_, master_address_, inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
-  uint16_t v_gfci_fault_value_, v_pac_, v_work_mode_code_, update_interval_;
-  uint32_t v_error_codes_code_, v_h_total_, loop_counter_ = 0;
+  uint16_t update_interval_;
+  uint32_t loop_counter_ = 0;
   std::vector<uint8_t> receive_buffer_;
+  std::vector<GoodweAA55Sensor *> sensors_;
+  std::vector<GoodweAA55TextSensor *> text_sensors_;
   bool inverter_online_ = false;
-  float v_vpv1_, v_vpv2_, v_ipv1_, v_ipv2_, v_vac1_, v_iac1_, v_fac1_, v_temperature_, v_e_total_, v_e_today_;
-
-// Sensor member pointers
-#define GOODWE_AA55_DECLARE_SENSOR(s) GoodweAA55Sensor *s_##s##_{nullptr};
-  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_DECLARE_SENSOR, )
-
-#define GOODWE_AA55_DECLARE_TEXT_SENSOR(s) GoodweAA55TextSensor *s_##s##_{nullptr};
-  GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_DECLARE_TEXT_SENSOR, )
 
   // Functions
   void parse_data();  // A method to parse the data read from the sensor hardware
@@ -63,7 +37,7 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
       std::vector<uint8_t> &message);  // Method that calculates and adds the CRC checksum to the AA55 message
   bool verify_checksum(std::vector<uint8_t> &message);        // Method that verifies the AA55 CRC checksum
   std::string create_hex_string(std::vector<uint8_t> &data);  // Method that converts an array of bytes to a hex string
-  float parse_int(std::vector<uint8_t> message, uint8_t start, uint8_t bytes, uint8_t precision);
+  uint32_t parse_int(std::vector<uint8_t> message, uint8_t start, uint8_t bytes);
 };
 
 }  // namespace goodwe_aa55

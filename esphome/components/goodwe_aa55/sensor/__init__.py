@@ -50,6 +50,7 @@ CONF_SKIP_UPDATES = "skip_updates"
 GoodweAA55Sensor = goodwe_aa55_ns.class_(
     "GoodweAA55Sensor", sensor.Sensor, cg.Component
 )
+SensorType = goodwe_aa55_ns.enum("SENSOR_TYPE", is_class=True)
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -207,9 +208,10 @@ async def to_code(config):
         if id and id.type == sensor.Sensor:
             sens = await sensor.new_sensor(conf)
             # await cg.register_component(sens, conf)
-            cg.add(getattr(hub, f"set_{key}")(sens))
             cg.add(sens.set_skip_updates(conf[CONF_SKIP_UPDATES]))
-            sensors.append(f"F({key})")
+            cg.add(sens.set_properties(key, getattr(SensorType, key.upper())))
+            cg.add(hub.add_sensor(sens))
+            sensors.append(f"F({key.upper()})")
 
     if sensors:
         cg.add_define(

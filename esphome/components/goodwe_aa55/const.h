@@ -1,14 +1,17 @@
 #pragma once
 #include <cstdint>
 
+namespace esphome {
+namespace goodwe_aa55 {
+
 static const char *LOGGING_TAG = "goodwe_aa55";
 static const uint8_t MAX_LINE_LENGTH = 150;  // Max characters for serial buffer, 150 bytes is the length of the
                                              // response to the "read running info list" command
 static const uint8_t INVERTER_OFFLINE_COUNTDOWN_RESET = 5;
 
 const std::vector<uint8_t> HEADERS = {0xaa, 0x55};
-const std::vector<std::string> work_mode_list = {"Waiting", "Normal", "Fault"};
-const std::vector<std::string> error_code_list = {"GFCI Device Failure",
+const std::vector<std::string> WORK_MODE_LIST = {"Waiting", "Normal", "Fault"};
+const std::vector<std::string> ERROR_CODE_LIST = {"GFCI Device Failure",
                                                   "AC HCT Failure",
                                                   "Unknown bit 2",
                                                   "DCI Consistency Failure",
@@ -40,8 +43,8 @@ const std::vector<std::string> error_code_list = {"GFCI Device Failure",
                                                   "Fac Failure",
                                                   "EEPROM R/W Failure",
                                                   "Internal Communication Failure"};
-enum class CONTROL_CODE { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
-enum class FUNCTION_CODE {
+enum class CONTROL_CODE : uint8_t { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
+enum class FUNCTION_CODE : uint8_t {
   // Register function codes
   OFFLINE_QUERY = 0x00,
   ALLOC_REG_ADDR = 0x01,
@@ -58,3 +61,57 @@ enum class FUNCTION_CODE {
   ID_INFO_RESPONSE = 0x82,
   SET_INFO_RESPONSE = 0x83
 };
+enum class SENSOR_PAYLOAD_LOCATION : uint8_t {
+  VPV1 = 0x00,
+  VPV2 = 0x01,
+  IPV1 = 0x02,
+  IPV2 = 0x03,
+  VAC1 = 0x04,
+  IAC1 = 0x07,
+  FAC1 = 0x0A,
+  PAC = 0x0D,
+  WORK_MODE = 0x0E,
+  TEMPERATURE = 0x0F,
+  ERROR_CODES = 0x10,
+  E_TOTAL = 0x12,
+  H_TOTAL = 0x14,
+  GFCI_FAULT_VALUE = 0x1F,
+  E_TODAY = 0x20
+};
+enum class SENSOR_PAYLOAD_LENGTH : uint8_t {
+  VPV1 = 2,
+  VPV2 = 2,
+  IPV1 = 2,
+  IPV2 = 2,
+  VAC1 = 2,
+  IAC1 = 2,
+  FAC1 = 2,
+  PAC = 2,
+  WORK_MODE = 2,
+  TEMPERATURE = 2,
+  ERROR_CODES = 4,
+  E_TOTAL = 4,
+  H_TOTAL = 4,
+  GFCI_FAULT_VALUE = 2,
+  E_TODAY = 2
+};
+enum class SENSOR_TYPE : uint8_t {
+  VPV1,
+  VPV2,
+  IPV1,
+  IPV2,
+  VAC1,
+  IAC1,
+  FAC1,
+  PAC,
+  WORK_MODE,
+  TEMPERATURE,
+  ERROR_CODES,
+  E_TOTAL,
+  H_TOTAL,
+  GFCI_FAULT_VALUE,
+  E_TODAY
+};
+
+}  // namespace goodwe_aa55
+}  // namespace esphome
