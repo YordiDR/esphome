@@ -30,8 +30,8 @@ void GoodweAA55::setup() {
 
   // Send deregister command to inverter address at ESP startup so we can register it again
   std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
-  message.push_back(master_address_);
-  message.push_back(slave_address_);
+  message.push_back(this->master_address_);
+  message.push_back(this->slave_address_);
   message.push_back((uint8_t) CONTROL_CODE::REGISTER);
   message.push_back((uint8_t) FUNCTION_CODE::REMOVE_REG);
   message.push_back(0x00);
@@ -41,26 +41,26 @@ void GoodweAA55::setup() {
 
 void GoodweAA55::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 component");
-  ESP_LOGCONFIG(LOGGING_TAG, "  Serial number: %s", serial_number_);
-  ESP_LOGCONFIG(LOGGING_TAG, "  Slave address: %x", slave_address_);
-  ESP_LOGCONFIG(LOGGING_TAG, "  Master address: %x", master_address_);
-  ESP_LOGCONFIG(LOGGING_TAG, "  Update interval: %d", update_interval_);
+  ESP_LOGCONFIG(LOGGING_TAG, "  Serial number: %s", this->serial_number_);
+  ESP_LOGCONFIG(LOGGING_TAG, "  Slave address: %x", this->slave_address_);
+  ESP_LOGCONFIG(LOGGING_TAG, "  Master address: %x", this->master_address_);
+  ESP_LOGCONFIG(LOGGING_TAG, "  Update interval: %d", this->update_interval_);
 }
 
 void GoodweAA55::loop() {
   // TODO If inverter is unregistered, send out offline requests to discover when it comes online, process registration
-  loop_counter_++;
+  this->loop_counter_++;
 
-  if (loop_counter_ < 1000) {
+  if (this->loop_counter_ < 1000) {
     return;
   }
 
-  loop_counter_ = 0;
+  this->loop_counter_ = 0;
   // Work to be done at each update interval
   uint8_t buffer_byte, message_length = MAX_LINE_LENGTH;  // Initialize bytes to read as maximum AA55 message length
-  receive_buffer_.clear();
+  this->receive_buffer_.clear();
   std::vector<uint8_t> message = HEADERS;  // Initialize message with AA55 header, then add command details
-  message.push_back(master_address_);
+  message.push_back(this->master_address_);
   message.push_back(0x7f);
   message.push_back((uint8_t) CONTROL_CODE::READ);
   message.push_back((uint8_t) FUNCTION_CODE::QUERY_RUN_INFO);
@@ -70,31 +70,31 @@ void GoodweAA55::loop() {
 
   this->write_array(message);  // Send query running info command to inverter
   // Read the response from the device, up to MAX_LINE_LENGTH bytes
-  while (this->available() && receive_buffer_.size() < message_length) {
+  while (this->available() && this->receive_buffer_.size() < message_length) {
     this->read_byte(&buffer_byte);
 
-    if (receive_buffer_.size() == 6) {  // 7th byte is payload size
+    if (this->receive_buffer_.size() == 6) {  // 7th byte is payload size
       message_length =
           9 + buffer_byte;  // Calculate total message size = AA55 header + source address + destination address +
                             // control code + function code + payload size byte + CRC + payload size
     }
-    receive_buffer_.push_back(buffer_byte);
+    this->receive_buffer_.push_back(buffer_byte);
   }
 
-  if (receive_buffer_.size() > 0) {
+  if (this->receive_buffer_.size() > 0) {
     // Reset inverter offline counter & flag since inverter is online
-    if (!inverter_online_) {
-      inverter_online_ = true;
-      inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
+    if (!this->inverter_online_) {
+      this->inverter_online_ = true;
+      this->inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
     }
     this->parse_data();
   } else {
     ESP_LOGI(LOGGING_TAG, "No response received from inverter");
-    if (inverter_online_) {
-      inverter_offline_countdown_--;
-      if (inverter_offline_countdown_ == 0) {
+    if (this->inverter_online_) {
+      this->inverter_offline_countdown_--;
+      if (this->inverter_offline_countdown_ == 0) {
         ESP_LOGI(LOGGING_TAG, "Considering inverter offline due to countdown.");
-        inverter_online_ = false;
+        this->inverter_online_ = false;
       }
     }
   }
@@ -154,11 +154,11 @@ void GoodweAA55::add_text_sensor(GoodweAA55TextSensor *sensor) { this->text_sens
 void GoodweAA55::parse_data() {
   // Example parsing method
   // Translates data received into buffer_data_ and stores it in parsed_value_ for
-  ESP_LOGD(LOGGING_TAG, "Parsing response %s (%d bytes)", this->create_hex_string(receive_buffer_),
-           receive_buffer_.size());
+  ESP_LOGD(LOGGING_TAG, "Parsing response %s (%d bytes)", this->create_hex_string(this->receive_buffer_),
+           this->receive_buffer_.size());
 
   ESP_LOGD(LOGGING_TAG, "Verifying received checksum...");
-  if (!this->verify_checksum(receive_buffer_)) {  // CRC checksum is removed in this function
+  if (!this->verify_checksum(this->receive_buffer_)) {  // CRC checksum is removed in this function
     ESP_LOGW(LOGGING_TAG, "Response has an incorrect checksum, ignoring...");
     return;
   }
@@ -166,9 +166,9 @@ void GoodweAA55::parse_data() {
   ESP_LOGD(LOGGING_TAG, "Message checksum is correct. Parsing headers...");
   ESP_LOGD(LOGGING_TAG,
            "Verifying that the packet is destined for me (my address: %x, packet destination address: %x)...",
-           master_address_, receive_buffer_.at(3));
+           this->master_address_, this->receive_buffer_.at(3));
 
-  if (master_address_ != receive_buffer_.at(3)) {
+  if (this->master_address_ != this->receive_buffer_.at(3)) {
     ESP_LOGD(LOGGING_TAG, "Received packet for another device. Skipping processing...");
     return;
   }
@@ -177,7 +177,7 @@ void GoodweAA55::parse_data() {
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command.
   // By checking if the E-total value is 0, we discard these responses.
-  if (parse_int(receive_buffer_, 31, 4) == 0) {
+  if (this->parse_int(this->receive_buffer_, 31, 4) == 0) {
     ESP_LOGI(LOGGING_TAG, "Received read response with all 0 payload. Discarding response...");
     return;
   }
