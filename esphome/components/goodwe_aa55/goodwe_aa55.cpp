@@ -194,11 +194,11 @@ void GoodweAA55::parse_data() {
     v_error_codes_ = "No errors";
   }
 
-#define GOODWE_AA55_PRINT_SENSOR_VALUES(s) ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", s, (float) v_##s);
+#define GOODWE_AA55_PRINT_SENSOR_VALUES(s) ESP_LOGV(LOGGING_TAG, "Parsed " #s ": %f", (float) v_##s##_);
   GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PRINT_SENSOR_VALUES, )
 #define GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES(s) \
-  ESP_LOGV(LOGGING_TAG, "Parsed %s: %d -> %s", s, v_##s##_code_, v_##s##_);
-  GOODWE_AA55_SENSOR_LIST(GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES, )
+  ESP_LOGV(LOGGING_TAG, "Parsed " #s ": %d -> %s", v_##s##_code_, v_##s##_);
+  GOODWE_AA55_TEXT_SENSOR_LIST(GOODWE_AA55_PRINT_TEXT_SENSOR_VALUES, )
 }
 
 void GoodweAA55::add_checksum(std::vector<uint8_t> &message) {
