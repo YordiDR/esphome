@@ -152,6 +152,13 @@ void GoodweAA55::parse_data() {
 
   ESP_LOGD(LOGGING_TAG, "Received packet is for me. Parsing payload...");
 
+  // During boot, sometimes the inverter returns an all 0 payload to the read command.
+  // By checking if the E-total value is > 0, we discard these responses.
+  if (parse_int(receive_buffer_, 31, 4, 1) == 0) {
+    ESP_LOGI(LOGGING_TAG, "Received read response with all 0 payload. Discarding response...");
+    return;
+  }
+
   v_vpv1_ = parse_int(receive_buffer_, 7, 2, 1);
   v_vpv2_ = parse_int(receive_buffer_, 9, 2, 1);
   v_ipv1_ = parse_int(receive_buffer_, 11, 2, 1);
