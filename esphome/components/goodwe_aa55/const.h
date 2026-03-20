@@ -5,8 +5,8 @@ namespace esphome {
 namespace goodwe_aa55 {
 
 static const char *LOGGING_TAG = "goodwe_aa55";
-static const uint8_t MAX_LINE_LENGTH = 150;  // Max characters for serial buffer, 150 bytes is the length of the
-                                             // response to the "read running info list" command
+static const uint8_t MAX_BUFFER_LENGTH = 160;  // Max characters for serial buffer, 150 bytes is the length of the
+                                               // response to the longest command (read running info list)
 static const uint8_t INVERTER_OFFLINE_COUNTDOWN_RESET = 5;
 
 const std::vector<uint8_t> HEADERS = {0xaa, 0x55};

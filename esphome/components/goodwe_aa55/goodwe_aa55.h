@@ -6,6 +6,8 @@
 #include "sensor/goodwe_aa55_sensor.h"
 #include "text_sensor/goodwe_aa55_text_sensor.h"
 #include <string>
+#include <vector>
+#include <deque>
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -32,11 +34,10 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   bool inverter_online_ = false;
 
   // Functions
-  void parse_data();  // A method to parse the data read from the sensor hardware
-  void add_checksum(
-      std::vector<uint8_t> &message);  // Method that calculates and adds the CRC checksum to the AA55 message
-  bool verify_checksum(std::vector<uint8_t> &message);        // Method that verifies the AA55 CRC checksum
-  std::string create_hex_string(std::vector<uint8_t> &data);  // Method that converts an array of bytes to a hex string
+  void parse_data(std::vector<uint8_t> &payload);         // A method to parse the data read from the sensor hardware
+  std::vector<uint8_t> calculate_checksum(auto &packet);  // Method that calculates the CRC checksum for an AA55 packet
+  std::string create_hex_string(std::vector<uint8_t> &data);  // Method that converts vector of bytes to a hex string
+  std::string create_hex_string(std::deque<uint8_t> &data);   // Method that converts deque of bytes to a hex string
   uint32_t parse_int(std::vector<uint8_t> message, uint8_t start, uint8_t bytes);
 };
 
