@@ -27,17 +27,8 @@ void GoodweAA55::setup() {
     sensor->publish_state("");
   }
 
-  // Send deregister command to inverter address at ESP startup so we can register it again
-  std::vector<uint8_t> packet = HEADERS;  // Initialize message with AA55 header, then add command details
-  packet.push_back(this->master_address_);
-  packet.push_back(this->slave_address_);
-  packet.push_back((uint8_t) CONTROL_CODE::REGISTER);
-  packet.push_back((uint8_t) FUNCTION_CODE::REMOVE_REG);
-  packet.push_back(0x00);
-  std::vector<uint8_t> checksum = this->calculate_checksum(packet);  // Calculate checksum
-  packet.push_back(checksum.at(0));
-  packet.push_back(checksum.at(1));
-  ESP_LOGD(LOGGING_TAG, "Sending message %s", this->create_hex_string(packet).c_str());
+  // Send deregister command to inverter at ESP startup so we can register it again
+  this->send_packet(this->slave_address_, CONTROL_CODE::REGISTER, FUNCTION_CODE::REMOVE_REG, EMPTY_VECTOR);
 }
 
 void GoodweAA55::dump_config() {
@@ -58,17 +49,7 @@ void GoodweAA55::loop() {
 
   this->loop_counter_ = 0;
   // Work to be done at each update interval
-  std::vector<uint8_t> packet = HEADERS;  // Initialize message with AA55 header, then add command details
-  packet.push_back(this->master_address_);
-  packet.push_back(0x7f);
-  packet.push_back((uint8_t) CONTROL_CODE::READ);
-  packet.push_back((uint8_t) FUNCTION_CODE::QUERY_RUN_INFO);
-  packet.push_back(0x00);
-  std::vector<uint8_t> checksum = this->calculate_checksum(packet);  // Calculate checksum
-  packet.push_back(checksum.at(0));
-  packet.push_back(checksum.at(1));
-  ESP_LOGD(LOGGING_TAG, "Sending message %s", this->create_hex_string(packet).c_str());
-  this->write_array(packet);  // Send query running info command to inverter
+  this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_RUN_INFO, EMPTY_VECTOR);
 
   // Receive response
   const uint8_t buffer_max_size{64};
@@ -264,6 +245,24 @@ void GoodweAA55::parse_data(const std::vector<uint8_t> &payload) {
     ESP_LOGV(LOGGING_TAG, "Parsed %s: %d -> %s", sensor->get_id().c_str(), sensor->newest_value_code,
              sensor->newest_value.c_str());
   }
+}
+
+std::vector<uint8_t> GoodweAA55::send_packet(uint8_t destination_address, CONTROL_CODE control_code,
+                                             FUNCTION_CODE function_code, const std::vector<uint8_t> &payload) {
+  std::vector<uint8_t> packet = HEADERS;  // Initialize message with AA55 header, then add command details
+  packet.push_back(this->master_address_);
+  packet.push_back(destination_address);
+  packet.push_back((uint8_t) control_code);
+  packet.push_back((uint8_t) function_code);
+  packet.push_back(payload.size());
+  if (payload != EMPTY_VECTOR) {
+    packet.insert(packet.end(), payload.begin(), payload.end());
+  }
+  const std::vector<uint8_t> checksum = this->calculate_checksum(packet);
+  packet.insert(packet.end(), checksum.begin(), checksum.end());
+  ESP_LOGD(LOGGING_TAG, "Sending packet %s", this->create_hex_string(packet).c_str());
+  this->write_array(packet);  // Send packet over UART
+  return packet;
 }
 
 uint32_t GoodweAA55::parse_int(const std::vector<uint8_t> &message, uint8_t start, uint8_t bytes) {

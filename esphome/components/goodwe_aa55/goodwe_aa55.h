@@ -36,6 +36,8 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   // Functions
   void parse_data(const std::vector<uint8_t> &payload);  // A method to parse the data read from the sensor hardware
   uint32_t parse_int(const std::vector<uint8_t> &message, uint8_t start, uint8_t bytes);
+  std::vector<uint8_t> send_packet(uint8_t destination_address, CONTROL_CODE control_code, FUNCTION_CODE function_code,
+                                   const std::vector<uint8_t> &payload);
   template<typename T> std::vector<uint8_t> calculate_checksum(const T &packet) {
     uint16_t crc = 0;
     ESP_LOGD(LOGGING_TAG, "Calculating CRC for packet '%s'...", this->create_hex_string(packet).c_str());

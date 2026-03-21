@@ -8,7 +8,9 @@ static const char *LOGGING_TAG = "goodwe_aa55";
 static const uint8_t MAX_BUFFER_LENGTH = 160;  // Max characters for serial buffer, 150 bytes is the length of the
                                                // response to the longest command (read running info list)
 static const uint8_t INVERTER_OFFLINE_COUNTDOWN_RESET = 5;
+static const uint8_t DEFAULT_ADDRESS = 0x7f;
 
+const std::vector<uint8_t> EMPTY_VECTOR = {};
 const std::vector<uint8_t> HEADERS = {0xaa, 0x55};
 const std::vector<std::string> WORK_MODE_LIST = {"Waiting", "Normal", "Fault"};
 const std::vector<std::string> ERROR_CODE_LIST = {"GFCI Device Failure",
@@ -43,6 +45,7 @@ const std::vector<std::string> ERROR_CODE_LIST = {"GFCI Device Failure",
                                                   "Fac Failure",
                                                   "EEPROM R/W Failure",
                                                   "Internal Communication Failure"};
+
 enum class CONTROL_CODE : uint8_t { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
 enum class FUNCTION_CODE : uint8_t {
   // Register function codes
@@ -78,7 +81,6 @@ enum class SENSOR_PAYLOAD_LOCATION : uint8_t {
   GFCI_FAULT_VALUE = 42,
   E_TODAY = 44
 };
-
 enum class SENSOR_PAYLOAD_LENGTH : uint8_t {
   VPV1 = 2,
   VPV2 = 2,
@@ -113,6 +115,5 @@ enum class SENSOR_TYPE : uint8_t {
   GFCI_FAULT_VALUE,
   E_TODAY
 };
-
 }  // namespace goodwe_aa55
 }  // namespace esphome
