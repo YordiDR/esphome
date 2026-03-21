@@ -87,7 +87,7 @@ CONFIG_SCHEMA = (
             ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
             cv.Optional(
                 CONF_IPV2,
-                default={CONF_ID: "ipv2", CONF_NAME: "PV2 Current (Ipv)"},
+                default={CONF_ID: "ipv2", CONF_NAME: "PV2 Current (Ipv2)"},
             ): sensor.sensor_schema(
                 class_=GoodweAA55Sensor,
                 unit_of_measurement=UNIT_AMPERE,
