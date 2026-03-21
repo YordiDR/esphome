@@ -62,22 +62,23 @@ enum class FUNCTION_CODE : uint8_t {
   SET_INFO_RESPONSE = 0x83
 };
 enum class SENSOR_PAYLOAD_LOCATION : uint8_t {
-  VPV1 = 0x00,
-  VPV2 = 0x01,
-  IPV1 = 0x02,
-  IPV2 = 0x03,
-  VAC1 = 0x04,
-  IAC1 = 0x07,
-  FAC1 = 0x0A,
-  PAC = 0x0D,
-  WORK_MODE = 0x0E,
-  TEMPERATURE = 0x0F,
-  ERROR_CODES = 0x10,
-  E_TOTAL = 0x12,
-  H_TOTAL = 0x14,
-  GFCI_FAULT_VALUE = 0x1F,
-  E_TODAY = 0x20
+  VPV1 = 0,
+  VPV2 = 2,
+  IPV1 = 4,
+  IPV2 = 6,
+  VAC1 = 8,
+  IAC1 = 10,
+  FAC1 = 12,
+  PAC = 14,
+  WORK_MODE = 16,
+  TEMPERATURE = 18,
+  ERROR_CODES = 20,
+  E_TOTAL = 24,
+  H_TOTAL = 28,
+  GFCI_FAULT_VALUE = 42,
+  E_TODAY = 44
 };
+
 enum class SENSOR_PAYLOAD_LENGTH : uint8_t {
   VPV1 = 2,
   VPV2 = 2,
