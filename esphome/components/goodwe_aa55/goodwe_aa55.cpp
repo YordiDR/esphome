@@ -48,123 +48,19 @@ void GoodweAA55::loop() {
   }
 
   this->loop_counter_ = 0;
+
   // Work to be done at each update interval
   this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_RUN_INFO, EMPTY_VECTOR);
 
   // Receive response
-  const uint8_t buffer_max_size{64};
-  bool packet_header_found{false};
-  int packet_size{-1};
-  bool packet_fully_received{false};
-  std::deque<uint8_t> buffer_deque;
-  while (this->available() && !packet_fully_received && buffer_deque.size() < MAX_BUFFER_LENGTH) {
-    // Read all available bytes in batches to reduce UART call overhead.
-    uint8_t avail = this->available();
-    size_t to_read = std::min(avail, buffer_max_size);
-    uint8_t buffer_array[to_read];
-    ESP_LOGV(LOGGING_TAG, "%d bytes are available from UART, max buffer size is %d, reading %d bytes...", avail,
-             buffer_max_size, to_read);
-    if (!this->read_array(buffer_array, to_read)) {
-      break;
-    }
+  std::vector<uint8_t> response_payload =
+      this->await_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::RUN_INFO_RESPONSE);
 
-    // Add received bytes in the buffer array to the deque
-    buffer_deque.insert(buffer_deque.end(), buffer_array, buffer_array + sizeof(buffer_array));
-    ESP_LOGV(LOGGING_TAG, "Updated buffer_deque contents: %s", this->create_hex_string(buffer_deque).c_str());
-
-    // Find header index if it is still unknown
-    if (!packet_header_found) {
-      ESP_LOGV(LOGGING_TAG, "Looking for header in buffer_deque...");
-      // Look for the header in the newly added indices
-      for (size_t i = buffer_deque.size() - to_read; i < buffer_deque.size() - 1; i++) {
-        ESP_LOGV(LOGGING_TAG, "Checking if header starts at buffer_deque[%d] (= %x)", i, buffer_deque.at(i));
-        if (buffer_deque.at(i) == 0xAA && buffer_deque.at(i + 1) == 0x55) {
-          ESP_LOGV(LOGGING_TAG, "Found header at buffer_deque[%d].", i);
-          // Strip bytes received before the packet
-          if (i != 0) {
-            ESP_LOGV(LOGGING_TAG, "Stripping %d bytes before header from deque", i);
-            buffer_deque.erase(buffer_deque.begin(), buffer_deque.begin() + i);
-            ESP_LOGV(LOGGING_TAG, "New buffer_deque contents: %s", this->create_hex_string(buffer_deque).c_str());
-          }
-
-          packet_header_found = true;
-          break;
-        }
-      }
-
-      if (!packet_header_found) {
-        ESP_LOGV(LOGGING_TAG, "Could not yet find AA55 header in buffer_deque.");
-      }
-    }
-
-    // Find packet size if it is still unknown
-    if (packet_header_found && packet_size == -1) {
-      ESP_LOGV(LOGGING_TAG, "Checking if buffer_deque contains packet size byte...");
-      if (buffer_deque.size() >= 7) {
-        ESP_LOGV(LOGGING_TAG, "Found payload size byte, value: %d..", buffer_deque.at(6));
-        packet_size = 9 + buffer_deque.at(6);  // Packet total size = AA55 header + source address + destination
-                                               // address + control code + function code + payload size + CRC +
-                                               // payload size. Everything except payload = 9 bytes
-      } else {
-        ESP_LOGV(LOGGING_TAG, "Buffer_deque does not yet contain packet size byte...");
-      }
-    }
-
-    // Check if packet is fully received
-    if (packet_size != -1 && buffer_deque.size() >= packet_size) {
-      ESP_LOGD(LOGGING_TAG, "Packet of %d bytes was fully received from UART.", packet_size);
-      packet_fully_received = true;
-
-      // Strip bytes received after the packet
-      if (buffer_deque.size() > packet_size) {
-        ESP_LOGV(LOGGING_TAG, "Removing %d trailing bytes from buffer_deque...", buffer_deque.size() - packet_size);
-        buffer_deque.erase(buffer_deque.begin() + packet_size, buffer_deque.end());
-      }
-    }
-  }
-
-  if (!packet_fully_received) {
-    ESP_LOGI(LOGGING_TAG, "Failed to receive response packet from inverter.");
-    if (this->inverter_online_) {
-      this->inverter_offline_countdown_--;
-      if (this->inverter_offline_countdown_ == 0) {
-        ESP_LOGI(LOGGING_TAG, "Considering inverter offline due to countdown.");
-        this->inverter_online_ = false;
-      }
-    }
+  if (response_payload == EMPTY_VECTOR) {
     return;
   }
 
-  if (!this->inverter_online_) {
-    this->inverter_online_ = true;
-    this->inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
-  }
-
-  ESP_LOGD(LOGGING_TAG, "Parsing response packet %s (%d bytes)", this->create_hex_string(buffer_deque).c_str(),
-           buffer_deque.size());
-
-  ESP_LOGD(LOGGING_TAG, "Verifying packet checksum...");
-  std::vector<uint8_t> received_crc_bytes = std::vector<uint8_t>(buffer_deque.end() - 2, buffer_deque.end());
-  buffer_deque.erase(buffer_deque.end() - 2, buffer_deque.end());
-  std::vector<uint8_t> calculated_crc_bytes = this->calculate_checksum(buffer_deque);
-
-  if (received_crc_bytes != calculated_crc_bytes) {
-    ESP_LOGW(LOGGING_TAG, "Packet has an incorrect checksum, ignoring...");
-  }
-
-  ESP_LOGD(LOGGING_TAG, "Packet checksum is correct. Parsing headers...");
-  ESP_LOGD(LOGGING_TAG,
-           "Verifying that the packet is destined for this device (my address: %x, packet destination address: %x)...",
-           this->master_address_, buffer_deque.at(3));
-
-  if (this->master_address_ != buffer_deque.at(3)) {
-    ESP_LOGD(LOGGING_TAG, "Received packet for another device. Skipping processing...");
-    return;
-  }
-
-  std::vector<uint8_t> packet_payload =
-      std::vector<uint8_t>(buffer_deque.begin() + 7, buffer_deque.end());  // Remove first 7 bytes (headers)
-  this->parse_data(packet_payload);
+  this->parse_run_info_response(response_payload);
 }
 
 void GoodweAA55::update() {
@@ -218,7 +114,9 @@ void GoodweAA55::add_sensor(GoodweAA55Sensor *sensor) { this->sensors_.push_back
 
 void GoodweAA55::add_text_sensor(GoodweAA55TextSensor *sensor) { this->text_sensors_.push_back(sensor); }
 
-void GoodweAA55::parse_data(const std::vector<uint8_t> &payload) {
+void GoodweAA55::parse_run_info_response(const std::vector<uint8_t> &payload) {
+  ESP_LOGD(LOGGING_TAG, "Parsing run info response payload %s (%d bytes)", this->create_hex_string(payload).c_str(),
+           payload.size());
   ESP_LOGD(LOGGING_TAG, "Parsing packet payload...");
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command.
@@ -247,8 +145,8 @@ void GoodweAA55::parse_data(const std::vector<uint8_t> &payload) {
   }
 }
 
-std::vector<uint8_t> GoodweAA55::send_packet(uint8_t destination_address, CONTROL_CODE control_code,
-                                             FUNCTION_CODE function_code, const std::vector<uint8_t> &payload) {
+void GoodweAA55::send_packet(uint8_t destination_address, CONTROL_CODE control_code, FUNCTION_CODE function_code,
+                             const std::vector<uint8_t> &payload) {
   std::vector<uint8_t> packet = HEADERS;  // Initialize message with AA55 header, then add command details
   packet.push_back(this->master_address_);
   packet.push_back(destination_address);
@@ -262,7 +160,135 @@ std::vector<uint8_t> GoodweAA55::send_packet(uint8_t destination_address, CONTRO
   packet.insert(packet.end(), checksum.begin(), checksum.end());
   ESP_LOGD(LOGGING_TAG, "Sending packet %s", this->create_hex_string(packet).c_str());
   this->write_array(packet);  // Send packet over UART
-  return packet;
+}
+
+std::vector<uint8_t> GoodweAA55::await_packet(uint8_t expected_source_address, CONTROL_CODE expected_control_code,
+                                              FUNCTION_CODE expected_function_code) {
+  const uint8_t buffer_max_size{64};
+  bool packet_header_found{false};
+  int packet_size{-1};
+  bool packet_fully_received{false};
+  std::deque<uint8_t> buffer_deque;
+
+  while (this->available() && !packet_fully_received && buffer_deque.size() < MAX_BUFFER_LENGTH) {
+    // Read all available bytes in batches to reduce UART call overhead.
+    uint8_t avail = this->available();
+    size_t to_read = std::min(avail, buffer_max_size);
+    uint8_t buffer_array[to_read];
+    ESP_LOGV(LOGGING_TAG, "%d bytes are available from UART, max buffer size is %d, reading %d bytes...", avail,
+             buffer_max_size, to_read);
+    if (!this->read_array(buffer_array, to_read)) {
+      break;
+    }
+
+    // Add received bytes in the buffer array to the deque
+    buffer_deque.insert(buffer_deque.end(), buffer_array, buffer_array + sizeof(buffer_array));
+    ESP_LOGV(LOGGING_TAG, "Updated buffer_deque contents: %s", this->create_hex_string(buffer_deque).c_str());
+
+    // Find header index if it is still unknown
+    if (!packet_header_found) {
+      ESP_LOGV(LOGGING_TAG, "Looking for header in buffer_deque...");
+      // Look for the header in the newly added indices
+      for (size_t i = buffer_deque.size() - to_read; i < buffer_deque.size() - 1; i++) {
+        ESP_LOGV(LOGGING_TAG, "Checking if header starts at buffer_deque[%d] (= %x)", i, buffer_deque.at(i));
+        if (buffer_deque.at(i) == 0xaa && buffer_deque.at(i + 1) == 0x55) {
+          ESP_LOGV(LOGGING_TAG, "Found header at buffer_deque[%d].", i);
+          // Strip bytes received before the packet
+          if (i != 0) {
+            ESP_LOGV(LOGGING_TAG, "Stripping %d bytes before header from deque", i);
+            buffer_deque.erase(buffer_deque.begin(), buffer_deque.begin() + i);
+            ESP_LOGV(LOGGING_TAG, "New buffer_deque contents: %s", this->create_hex_string(buffer_deque).c_str());
+          }
+
+          packet_header_found = true;
+          break;
+        }
+      }
+
+      if (!packet_header_found) {
+        ESP_LOGV(LOGGING_TAG, "Could not yet find AA55 header in buffer_deque.");
+      }
+    }
+
+    // Find packet size if it is still unknown
+    if (packet_header_found && packet_size == -1) {
+      ESP_LOGV(LOGGING_TAG, "Checking if buffer_deque contains packet size byte...");
+      if (buffer_deque.size() >= 7) {
+        ESP_LOGV(LOGGING_TAG, "Found payload size byte, value: %d..", buffer_deque.at(6));
+        packet_size = 9 + buffer_deque.at(6);  // Packet total size = AA55 header + source address + destination
+                                               // address + control code + function code + payload size + CRC +
+                                               // payload size. Everything except payload = 9 bytes
+      } else {
+        ESP_LOGV(LOGGING_TAG, "Buffer_deque does not yet contain packet size byte...");
+      }
+    }
+
+    // Check if packet is fully received
+    if (packet_size != -1 && buffer_deque.size() >= packet_size) {
+      ESP_LOGD(LOGGING_TAG, "Packet of %d bytes was fully received from UART.", packet_size);
+      ESP_LOGD(LOGGING_TAG, "Verifying received packet checksum...");
+      std::vector<uint8_t> calculated_crc_bytes = this->calculate_checksum(std::vector<uint8_t>(
+          buffer_deque.begin(),
+          buffer_deque.begin() + packet_size - 2));  // Calculate checksum of received packet without received CRC bytes
+
+      if (buffer_deque.at(packet_size - 2) != calculated_crc_bytes.at(0) ||
+          buffer_deque.at(packet_size - 1) != calculated_crc_bytes.at(1)) {
+        ESP_LOGW(LOGGING_TAG, "Packet has an incorrect checksum, removing from buffer...");
+        buffer_deque.erase(buffer_deque.begin(), buffer_deque.begin() + packet_size);
+        packet_header_found = false;
+        packet_size = -1;
+        continue;
+      }
+
+      // Check if the packet is what we expect, if not, drop it and continue looking for the response
+      if (buffer_deque.at(2) == expected_source_address && buffer_deque.at(3) == this->master_address_ &&
+          buffer_deque.at(4) == (uint8_t) expected_control_code &&
+          buffer_deque.at(5) == (uint8_t) expected_function_code) {
+        packet_fully_received = true;
+        ESP_LOGD(LOGGING_TAG, "Received packet with expected headers");
+      } else {
+        ESP_LOGD(LOGGING_TAG, "Received packet which is not what we expect. Received packet with headers: %s",
+                 this->create_hex_string(std::vector<uint8_t>(buffer_deque.begin(), buffer_deque.begin() + 5)).c_str());
+        ESP_LOGD(LOGGING_TAG, "Removing unexpected packet from buffer...");
+        buffer_deque.erase(buffer_deque.begin(), buffer_deque.begin() + packet_size);
+        packet_header_found = false;
+        packet_size = -1;
+      }
+    }
+  }
+
+  if (!packet_fully_received) {
+    ESP_LOGI(LOGGING_TAG, "Failed to receive response packet");
+    if (this->inverter_online_) {
+      this->inverter_offline_countdown_--;
+      if (this->inverter_offline_countdown_ == 0) {
+        ESP_LOGI(LOGGING_TAG, "Considering inverter offline due to countdown.");
+        this->inverter_online_ = false;
+      }
+    }
+    return EMPTY_VECTOR;
+  }
+
+  // Mark inverter as online if it was previously online since we succesfully received a response
+  if (!this->inverter_online_) {
+    this->inverter_online_ = true;
+    this->inverter_offline_countdown_ = INVERTER_OFFLINE_COUNTDOWN_RESET;
+  }
+
+  return std::vector<uint8_t>(buffer_deque.begin() + 7, buffer_deque.begin() + packet_size - 2);  // Return payload
+}
+
+std::vector<uint8_t> GoodweAA55::calculate_checksum(const std::vector<uint8_t> &packet) {
+  uint16_t crc = 0;
+  ESP_LOGD(LOGGING_TAG, "Calculating CRC for packet '%s'...", this->create_hex_string(packet).c_str());
+  for (uint8_t byte : packet) {
+    ESP_LOGV(LOGGING_TAG, "Checksum calculation: adding value %x to current CRC value (%d)", byte, crc);
+    crc += byte;
+  }
+
+  ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d, {%x, %x}", crc, (uint8_t) (crc >> 8), (uint8_t) crc);
+  const std::vector<uint8_t> crc_bytes{(uint8_t) (crc >> 8), (uint8_t) crc};
+  return crc_bytes;
 }
 
 uint32_t GoodweAA55::parse_int(const std::vector<uint8_t> &message, uint8_t start, uint8_t bytes) {
