@@ -44,7 +44,7 @@ void GoodweAA55::setup() {
 
 void GoodweAA55::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 component");
-  ESP_LOGCONFIG(LOGGING_TAG, "  Serial number: %s", this->serial_number_);
+  ESP_LOGCONFIG(LOGGING_TAG, "  Serial number: %s", this->serial_number_.c_str());
   ESP_LOGCONFIG(LOGGING_TAG, "  Slave address: %x", this->slave_address_);
   ESP_LOGCONFIG(LOGGING_TAG, "  Master address: %x", this->master_address_);
   ESP_LOGCONFIG(LOGGING_TAG, "  Update interval: %d", this->update_interval_);
@@ -252,14 +252,19 @@ void GoodweAA55::parse_data(std::vector<uint8_t> &payload) {
 
   // Save received values in the sensor attributes
   for (GoodweAA55Sensor *sensor : this->sensors_) {
+    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+             sensor->get_payload_location(), sensor->get_payload_length());
     sensor->newest_value = this->parse_int(payload, sensor->get_payload_location(), sensor->get_payload_length());
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id(), sensor->newest_value);
+    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->newest_value);
   }
 
   for (GoodweAA55TextSensor *sensor : this->text_sensors_) {
+    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+             sensor->get_payload_location(), sensor->get_payload_length());
     sensor->newest_value_code = this->parse_int(payload, sensor->get_payload_location(), sensor->get_payload_length());
     sensor->map_code_to_string();
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %d -> %s", sensor->get_id(), sensor->newest_value_code, sensor->newest_value);
+    ESP_LOGV(LOGGING_TAG, "Parsed %s: %d -> %s", sensor->get_id().c_str(), sensor->newest_value_code,
+             sensor->newest_value.c_str());
   }
 }
 
@@ -291,7 +296,7 @@ uint32_t GoodweAA55::parse_int(std::vector<uint8_t> message, uint8_t start, uint
       break;
     default:
       ESP_LOGE(LOGGING_TAG, "Received incorrect value for bytes parameter in GoodweAA55::parse_int. Value: %d", bytes);
-      return 0.0;
+      return 0;
   }
 
   return response;
