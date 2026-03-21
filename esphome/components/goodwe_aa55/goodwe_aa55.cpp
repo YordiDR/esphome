@@ -237,7 +237,7 @@ void GoodweAA55::add_sensor(GoodweAA55Sensor *sensor) { this->sensors_.push_back
 
 void GoodweAA55::add_text_sensor(GoodweAA55TextSensor *sensor) { this->text_sensors_.push_back(sensor); }
 
-void GoodweAA55::parse_data(std::vector<uint8_t> &payload) {
+void GoodweAA55::parse_data(const std::vector<uint8_t> &payload) {
   ESP_LOGD(LOGGING_TAG, "Parsing packet payload...");
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command.
@@ -266,20 +266,7 @@ void GoodweAA55::parse_data(std::vector<uint8_t> &payload) {
   }
 }
 
-std::vector<uint8_t> GoodweAA55::calculate_checksum(auto &packet) {
-  uint16_t crc = 0;
-  ESP_LOGD(LOGGING_TAG, "Calculating CRC for packet '%s'...", this->create_hex_string(packet).c_str());
-  for (uint8_t byte : packet) {
-    ESP_LOGV(LOGGING_TAG, "Checksum calculation: adding value %x to current CRC value (%d)", byte, crc);
-    crc += byte;
-  }
-
-  ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d, {%x, %x}", crc, (uint8_t) (crc >> 8), (uint8_t) crc);
-  const std::vector<uint8_t> crc_bytes{(uint8_t) (crc >> 8), (uint8_t) crc};
-  return crc_bytes;
-}
-
-uint32_t GoodweAA55::parse_int(std::vector<uint8_t> message, uint8_t start, uint8_t bytes) {
+uint32_t GoodweAA55::parse_int(const std::vector<uint8_t> &message, uint8_t start, uint8_t bytes) {
   uint32_t response = 0;
   switch (bytes) {
     case 2:
@@ -298,35 +285,6 @@ uint32_t GoodweAA55::parse_int(std::vector<uint8_t> message, uint8_t start, uint
   }
 
   return response;
-}
-
-std::string GoodweAA55::create_hex_string(std::vector<uint8_t> &data) {
-  std::string result;
-  result.reserve(data.size() * 2);
-
-  const char *hex = "0123456789ABCDEF";
-
-  for (uint8_t byte : data) {
-    result.push_back(hex[(byte >> 4) & 0xF]);
-    result.push_back(hex[byte & 0xF]);
-  }
-
-  return result;
-}
-
-std::string GoodweAA55::create_hex_string(std::deque<uint8_t> &data) {
-  std::string result;
-  result.reserve(data.size() * 2);
-
-  const char *hex = "0123456789ABCDEF";
-
-  for (uint8_t byte : data) {
-    result.push_back(hex[(byte >> 4) & 0xF]);
-    result.push_back(hex[byte & 0xF]);
-    result.push_back(' ');
-  }
-
-  return result;
 }
 }  // namespace goodwe_aa55
 }  // namespace esphome
