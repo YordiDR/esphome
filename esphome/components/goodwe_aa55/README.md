@@ -1,4 +1,5 @@
 # Example configuration
+```yaml
 uart:
   - id: uart_aa55
     tx_pin: GPIO01
@@ -12,8 +13,8 @@ goodwe_aa55:
   - id: aa55_inverter01
     uart_id: uart_aa55
     serial_number: ABCDEFGHIJKLMNOP
-    slave_address: 0x01
-    master_address: 0xFF
+    slave_address: 0x01 # first bit should be zero (see AA55 doc)
+    master_address: 0xFF # first bit should be one (see AA55 doc)
     update_interval: 5s
 
 sensor:
@@ -34,3 +35,7 @@ text_sensor:
     work_mode:
       name: "ADRINV02 work mode"
       id: adrinv02_work_mode
+```
+
+# AA55 protocol documentation
+An unofficial protocol documentation file can be found here: https://yamasun.com.tw/upload/F_20170313191367UrC8jo.PDF
