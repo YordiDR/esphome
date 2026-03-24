@@ -121,8 +121,8 @@ void GoodweAA55::parse_run_info_response(const std::vector<uint8_t> &payload) {
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command.
   // By checking if the E-total value is 0, we discard these responses.
-  if (this->parse_int(payload, (uint8_t) SENSOR_PAYLOAD_LOCATION::E_TOTAL, (uint8_t) SENSOR_PAYLOAD_LENGTH::E_TOTAL) ==
-      0) {
+  if (this->parse_int(payload, MAP_SENSOR_PAYLOAD_LOCATION.at(SENSOR_TYPE::E_TOTAL),
+                      MAP_SENSOR_PAYLOAD_LENGTH.at(SENSOR_TYPE::E_TOTAL)) == 0) {
     ESP_LOGI(LOGGING_TAG, "Received read response with all 0 payload. Discarding response...");
     return;
   }

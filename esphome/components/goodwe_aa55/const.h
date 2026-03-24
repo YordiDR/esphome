@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <unordered_map>
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -64,40 +65,6 @@ enum class FUNCTION_CODE : uint8_t {
   ID_INFO_RESPONSE = 0x82,
   SET_INFO_RESPONSE = 0x83
 };
-enum class SENSOR_PAYLOAD_LOCATION : uint8_t {
-  VPV1 = 0,
-  VPV2 = 2,
-  IPV1 = 4,
-  IPV2 = 6,
-  VAC1 = 8,
-  IAC1 = 10,
-  FAC1 = 12,
-  PAC = 14,
-  WORK_MODE = 16,
-  TEMPERATURE = 18,
-  ERROR_CODES = 20,
-  E_TOTAL = 24,
-  H_TOTAL = 28,
-  GFCI_FAULT_VALUE = 42,
-  E_TODAY = 44
-};
-enum class SENSOR_PAYLOAD_LENGTH : uint8_t {
-  VPV1 = 2,
-  VPV2 = 2,
-  IPV1 = 2,
-  IPV2 = 2,
-  VAC1 = 2,
-  IAC1 = 2,
-  FAC1 = 2,
-  PAC = 2,
-  WORK_MODE = 2,
-  TEMPERATURE = 2,
-  ERROR_CODES = 4,
-  E_TOTAL = 4,
-  H_TOTAL = 4,
-  GFCI_FAULT_VALUE = 2,
-  E_TODAY = 2
-};
 enum class SENSOR_TYPE : uint8_t {
   VPV1,
   VPV2,
@@ -115,5 +82,30 @@ enum class SENSOR_TYPE : uint8_t {
   GFCI_FAULT_VALUE,
   E_TODAY
 };
+
+const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LOCATION = {
+    {SENSOR_TYPE::VPV1, 0},         {SENSOR_TYPE::VPV2, 2},
+    {SENSOR_TYPE::IPV1, 4},         {SENSOR_TYPE::IPV2, 6},
+    {SENSOR_TYPE::VAC1, 8},         {SENSOR_TYPE::IAC1, 10},
+    {SENSOR_TYPE::FAC1, 12},        {SENSOR_TYPE::PAC, 14},
+    {SENSOR_TYPE::WORK_MODE, 16},   {SENSOR_TYPE::TEMPERATURE, 18},
+    {SENSOR_TYPE::ERROR_CODES, 20}, {SENSOR_TYPE::E_TOTAL, 24},
+    {SENSOR_TYPE::H_TOTAL, 28},     {SENSOR_TYPE::GFCI_FAULT_VALUE, 42},
+    {SENSOR_TYPE::E_TODAY, 44}};
+
+const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LENGTH = {{SENSOR_TYPE::VPV2, 2},
+                                                                            {SENSOR_TYPE::IPV1, 2},
+                                                                            {SENSOR_TYPE::IPV2, 2},
+                                                                            {SENSOR_TYPE::VAC1, 2},
+                                                                            {SENSOR_TYPE::IAC1, 2},
+                                                                            {SENSOR_TYPE::FAC1, 2},
+                                                                            {SENSOR_TYPE::PAC, 2},
+                                                                            {SENSOR_TYPE::WORK_MODE, 2},
+                                                                            {SENSOR_TYPE::TEMPERATURE, 2},
+                                                                            {SENSOR_TYPE::ERROR_CODES, 4},
+                                                                            {SENSOR_TYPE::E_TOTAL, 4},
+                                                                            {SENSOR_TYPE::H_TOTAL, 4},
+                                                                            {SENSOR_TYPE::GFCI_FAULT_VALUE, 2},
+                                                                            {SENSOR_TYPE::E_TODAY, 2}};
 }  // namespace goodwe_aa55
 }  // namespace esphome

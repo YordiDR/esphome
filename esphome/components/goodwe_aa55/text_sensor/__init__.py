@@ -40,21 +40,13 @@ CONFIG_SCHEMA = (
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_GOODWE_AA55_ID])
 
-    text_sensors = []
     for key, conf in config.items():
         if not isinstance(conf, dict):
             continue
         id = conf[CONF_ID]
         if id and id.type == text_sensor.TextSensor:
             sens = await text_sensor.new_text_sensor(conf)
-            # await cg.register_component(sens, conf)
             cg.add(sens.set_skip_updates(conf[CONF_SKIP_UPDATES]))
-            cg.add(sens.set_properties(key, getattr(SensorType, key.upper())))
+            cg.add(sens.set_id(key))
+            cg.add(sens.set_type(getattr(SensorType, key.upper())))
             cg.add(hub.add_text_sensor(sens))
-            text_sensors.append(f"F({key.upper()})")
-
-    if text_sensors:
-        cg.add_define(
-            "GOODWE_AA55_TEXT_SENSOR_LIST(F, sep)",
-            cg.RawExpression(" sep ".join(text_sensors)),
-        )

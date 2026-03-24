@@ -27,8 +27,8 @@ class GoodweAA55TextSensor : public GoodweAA55BaseSensor, public text_sensor::Te
     ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 text sensor");
     ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
     ESP_LOGCONFIG(LOGGING_TAG, "  Skip Updates: %d", this->skip_updates_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", this->payload_location_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", this->payload_length_);
+    ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_));
+    ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_));
   }
 
  protected:
