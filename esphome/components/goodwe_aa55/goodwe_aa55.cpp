@@ -125,17 +125,21 @@ void GoodweAA55::parse_run_info_response(const std::vector<uint8_t> &payload) {
 
   // Save received values in the sensor attributes
   for (GoodweAA55Sensor *sensor : this->sensors_) {
-    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-             sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->parse_payload(payload);
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+    if (MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == FUNCTION_CODE::RUN_INFO_RESPONSE) {
+      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+               sensor->get_payload_location(), sensor->get_payload_length());
+      sensor->parse_payload(payload);
+      ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+    }
   }
 
   for (GoodweAA55TextSensor *sensor : this->text_sensors_) {
-    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-             sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->parse_payload(payload);
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+    if (MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == FUNCTION_CODE::RUN_INFO_RESPONSE) {
+      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+               sensor->get_payload_location(), sensor->get_payload_length());
+      sensor->parse_payload(payload);
+      ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+    }
   }
 }
 
@@ -154,17 +158,21 @@ void GoodweAA55::parse_id_info_response(const std::vector<uint8_t> &payload) {
 
   // Save received values in the sensor attributes
   for (GoodweAA55Sensor *sensor : this->sensors_) {
-    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-             sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->parse_payload(payload);
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+    if (MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == FUNCTION_CODE::ID_INFO_RESPONSE) {
+      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+               sensor->get_payload_location(), sensor->get_payload_length());
+      sensor->parse_payload(payload);
+      ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+    }
   }
 
   for (GoodweAA55TextSensor *sensor : this->text_sensors_) {
-    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-             sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->parse_payload(payload);
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+    if (MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == FUNCTION_CODE::ID_INFO_RESPONSE) {
+      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+               sensor->get_payload_location(), sensor->get_payload_length());
+      sensor->parse_payload(payload);
+      ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+    }
   }
 }
 
