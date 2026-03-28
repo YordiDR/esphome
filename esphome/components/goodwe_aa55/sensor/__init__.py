@@ -45,6 +45,8 @@ CONF_VAC1_FAULT_VALUE = "vac1_fault_value"
 CONF_FAC1_FAULT_VALUE = "fac1_fault_value"
 CONF_GFCI_FAULT_VALUE = "gfci_fault_value"
 CONF_E_TODAY = "e_today"
+CONF_NOM_VPV = "nom_vpv"
+CONF_SAFETY_COUNTRY_CODE = "safety_country_code"
 CONF_SKIP_UPDATES = "skip_updates"
 
 GoodweAA55Sensor = goodwe_aa55_ns.class_(
@@ -190,6 +192,30 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_ENERGY,
             ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            cv.Optional(
+                CONF_NOM_VPV,
+                default={
+                    CONF_ID: "nom_vpv",
+                    CONF_NAME: "Nominal PV Voltage (nom_Vpv)",
+                },
+            ): sensor.sensor_schema(
+                class_=GoodweAA55Sensor,
+                unit_of_measurement=UNIT_VOLT,
+                accuracy_decimals=1,
+                state_class=STATE_CLASS_MEASUREMENT,
+                device_class=DEVICE_CLASS_VOLTAGE,
+            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}),
+            cv.Optional(
+                CONF_SAFETY_COUNTRY_CODE,
+                default={
+                    CONF_ID: "safety_country_code",
+                    CONF_NAME: "Safety country code",
+                },
+            ): sensor.sensor_schema(
+                class_=GoodweAA55Sensor,
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}),
         }
     )
     .extend(HUB_CHILD_SCHEMA)

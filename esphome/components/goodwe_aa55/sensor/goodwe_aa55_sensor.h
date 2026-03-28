@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "../goodwe_aa55_base_sensor.h"
 #include "../const.h"
+#include <string>
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -10,8 +11,19 @@ namespace goodwe_aa55 {
 class GoodweAA55Sensor : public GoodweAA55BaseSensor, public sensor::Sensor, public Component {
  public:
   void parse_payload(const std::vector<uint8_t> &payload) {
-    this->newest_value =
-        this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
+    if (this->type_ == SENSOR_TYPE::NOM_VPV) {  // NOM_VPV is a special case, it is an ASCII encoded string containing
+                                                // the nominal Voltage (int with 1 decimal precision)
+      std::string nom_vpv_string =
+          std::string(payload.begin() + this->get_payload_location(),
+                      payload.begin() + this->get_payload_location() + this->get_payload_length());
+      this->newest_value =
+          std::stoi(std::string(payload.begin() + this->get_payload_location(),
+                                payload.begin() + this->get_payload_location() + this->get_payload_length())) /
+          10.0;
+    } else {
+      this->newest_value =
+          this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
+    }
   }
 
   float get_newest_value() { return this->newest_value; }

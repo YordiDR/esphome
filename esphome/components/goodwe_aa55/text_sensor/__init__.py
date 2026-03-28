@@ -9,13 +9,11 @@ DEPENDENCIES = ["goodwe_aa55"]
 
 CONF_WORK_MODE = "work_mode"
 CONF_ERROR_CODES = "error_codes"
-CONF_SKIP_UPDATES = "skip_updates"
 CONF_FIRMWARE_VERSION = "firmware_version"
 CONF_MODEL = "model"
 CONF_SERIAL_NUMBER = "serial_number"
-CONF_NOM_VPV = "nom_vpv"
 CONF_INTERNAL_VERSION = "internal_version"
-CONF_SAFETY_COUNTRY_CODE = "safety_country_code"
+CONF_SKIP_UPDATES = "skip_updates"
 
 GoodweAA55TextSensor = goodwe_aa55_ns.class_(
     "GoodweAA55TextSensor", text_sensor.TextSensor, cg.Component
@@ -40,39 +38,24 @@ CONFIG_SCHEMA = (
                 CONF_FIRMWARE_VERSION,
                 default={CONF_ID: "firmware_version", CONF_NAME: "Firmware version"},
             ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=1000): cv.positive_int}
+                {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
             ),
             cv.Optional(
                 CONF_MODEL, default={CONF_ID: "model", CONF_NAME: "Model"}
             ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=1000): cv.positive_int}
+                {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
             ),
             cv.Optional(
                 CONF_SERIAL_NUMBER,
                 default={CONF_ID: "serial_number", CONF_NAME: "Serial number"},
             ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=1000): cv.positive_int}
-            ),
-            cv.Optional(
-                CONF_NOM_VPV,
-                default={CONF_ID: "nom_vpv", CONF_NAME: "Nominal PV Voltage (nom_Vpv)"},
-            ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=1000): cv.positive_int}
+                {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
             ),
             cv.Optional(
                 CONF_INTERNAL_VERSION,
                 default={CONF_ID: "internal_version", CONF_NAME: "Internal version"},
             ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=1000): cv.positive_int}
-            ),
-            cv.Optional(
-                CONF_SAFETY_COUNTRY_CODE,
-                default={
-                    CONF_ID: "safety_country_code",
-                    CONF_NAME: "Safety country code",
-                },
-            ): text_sensor.text_sensor_schema(class_=GoodweAA55TextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=1000): cv.positive_int}
+                {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
             ),
         }
     )
