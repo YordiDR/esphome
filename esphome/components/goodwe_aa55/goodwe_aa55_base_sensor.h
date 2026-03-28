@@ -37,6 +37,23 @@ class GoodweAA55BaseSensor {
   uint16_t skipped_updates_{0};
   SENSOR_TYPE type_{};
   std::string id_{};
+
+  uint32_t parse_int(const std::vector<uint8_t> &payload) {
+    uint32_t response = 0;
+
+    // Safety check to prevent out-of-bounds crash
+    if (this->get_payload_location() + this->get_payload_length() > payload.size()) {
+      ESP_LOGE(LOGGING_TAG, "Buffer overflow in parse_int at index %d", this->get_payload_location());
+      return 0;
+    }
+
+    for (size_t i = 0; i < this->get_payload_length(); i++) {
+      // Shift left 8 bits for each byte to maintain Big-Endian order
+      response = (response << 8) | payload.at(this->get_payload_location() + i);
+    }
+
+    return response;
+  }
 };
 
 }  // namespace goodwe_aa55

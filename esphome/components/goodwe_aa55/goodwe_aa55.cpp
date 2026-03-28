@@ -6,16 +6,15 @@
 #include <iterator>
 #include <cmath>
 #include <string>
+#include <algorithm>
 
 namespace esphome {
 namespace goodwe_aa55 {
 
-GoodweAA55::GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t master_address,
-                       uint32_t update_interval) {
+GoodweAA55::GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t master_address) {
   serial_number_ = serial_number;
   slave_address_ = slave_address;
   master_address_ = master_address;
-  update_interval_ = update_interval;
 }
 
 void GoodweAA55::setup() {
@@ -41,18 +40,12 @@ void GoodweAA55::dump_config() {
 
 void GoodweAA55::loop() {
   // TODO If inverter is unregistered, send out offline requests to discover when it comes online, process registration
-  this->loop_counter_++;
+  // TODO send register command every 10s
+}
 
-  if (this->loop_counter_ < 1000) {
-    return;
-  }
-
-  this->loop_counter_ = 0;
-
-  // Work to be done at each update interval
+void GoodweAA55::update() {
+  // Get updated running info from inverter
   this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_RUN_INFO, EMPTY_VECTOR);
-
-  // Receive response
   std::vector<uint8_t> response_payload =
       this->await_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::RUN_INFO_RESPONSE);
 
@@ -60,10 +53,20 @@ void GoodweAA55::loop() {
     return;
   }
 
+  // Parse updated sensor info
   this->parse_run_info_response(response_payload);
-}
 
-void GoodweAA55::update() {
+  // Get updated ID info from inverter
+  this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_ID_INFO, EMPTY_VECTOR);
+  response_payload = this->await_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::ID_INFO_RESPONSE);
+
+  if (response_payload == EMPTY_VECTOR) {
+    return;
+  }
+
+  // Parse updated sensor info
+  this->parse_id_info_response(response_payload);
+
   if (!this->inverter_online_) {
     // Set all sensors to an unknown state
     for (GoodweAA55Sensor *sensor : this->sensors_) {
@@ -78,19 +81,12 @@ void GoodweAA55::update() {
         sensor->publish_state("");
       }
     }
-
-    return;
   }
 
   // Publish most recent sensor values if applicable
   for (GoodweAA55Sensor *sensor : this->sensors_) {
     if (sensor->time_to_update()) {
-      if (sensor->get_accuracy_decimals() > 0) {
-        sensor->publish_state(sensor->newest_value /
-                              std::pow(10.0, (float) sensor->get_accuracy_decimals()));  // Apply decimal precision
-      } else {
-        sensor->publish_state(sensor->newest_value);
-      }
+      sensor->publish_state(sensor->get_newest_value());
       if (sensor->get_skip_updates() != 0) {
         sensor->reset_skipped_updates();
       }
@@ -100,7 +96,7 @@ void GoodweAA55::update() {
   }
   for (GoodweAA55TextSensor *sensor : this->text_sensors_) {
     if (sensor->time_to_update()) {
-      sensor->publish_state(sensor->newest_value);
+      sensor->publish_state(sensor->get_newest_value());
       if (sensor->get_skip_updates() != 0) {
         sensor->reset_skipped_updates();
       }
@@ -120,9 +116,9 @@ void GoodweAA55::parse_run_info_response(const std::vector<uint8_t> &payload) {
   ESP_LOGD(LOGGING_TAG, "Parsing packet payload...");
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command.
-  // By checking if the E-total value is 0, we discard these responses.
-  if (this->parse_int(payload, MAP_SENSOR_PAYLOAD_LOCATION.at(SENSOR_TYPE::E_TOTAL),
-                      MAP_SENSOR_PAYLOAD_LENGTH.at(SENSOR_TYPE::E_TOTAL)) == 0) {
+  bool all_zeroes = std::all_of(payload.begin(), payload.end(), [](int i) { return i == 0; });
+
+  if (all_zeroes) {
     ESP_LOGI(LOGGING_TAG, "Received read response with all 0 payload. Discarding response...");
     return;
   }
@@ -131,17 +127,44 @@ void GoodweAA55::parse_run_info_response(const std::vector<uint8_t> &payload) {
   for (GoodweAA55Sensor *sensor : this->sensors_) {
     ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
              sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->newest_value = this->parse_int(payload, sensor->get_payload_location(), sensor->get_payload_length());
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->newest_value);
+    sensor->parse_payload(payload);
+    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
   }
 
   for (GoodweAA55TextSensor *sensor : this->text_sensors_) {
     ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
              sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->newest_value_code = this->parse_int(payload, sensor->get_payload_location(), sensor->get_payload_length());
-    sensor->map_code_to_string();
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %d -> %s", sensor->get_id().c_str(), sensor->newest_value_code,
-             sensor->newest_value.c_str());
+    sensor->parse_payload(payload);
+    ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+  }
+}
+
+void GoodweAA55::parse_id_info_response(const std::vector<uint8_t> &payload) {
+  ESP_LOGD(LOGGING_TAG, "Parsing ID info response payload %s (%d bytes)", this->create_hex_string(payload).c_str(),
+           payload.size());
+  ESP_LOGD(LOGGING_TAG, "Parsing packet payload...");
+
+  // During boot, sometimes the inverter returns an all 0 payload to the read command.
+  bool all_zeroes = std::all_of(payload.begin(), payload.end(), [](int i) { return i == 0; });
+
+  if (all_zeroes) {
+    ESP_LOGI(LOGGING_TAG, "Received read ID info response with all 0 payload. Discarding response...");
+    return;
+  }
+
+  // Save received values in the sensor attributes
+  for (GoodweAA55Sensor *sensor : this->sensors_) {
+    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+             sensor->get_payload_location(), sensor->get_payload_length());
+    sensor->parse_payload(payload);
+    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+  }
+
+  for (GoodweAA55TextSensor *sensor : this->text_sensors_) {
+    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
+             sensor->get_payload_location(), sensor->get_payload_length());
+    sensor->parse_payload(payload);
+    ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
   }
 }
 
@@ -289,27 +312,6 @@ std::vector<uint8_t> GoodweAA55::calculate_checksum(const std::vector<uint8_t> &
   ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d, {%x, %x}", crc, (uint8_t) (crc >> 8), (uint8_t) crc);
   const std::vector<uint8_t> crc_bytes{(uint8_t) (crc >> 8), (uint8_t) crc};
   return crc_bytes;
-}
-
-uint32_t GoodweAA55::parse_int(const std::vector<uint8_t> &message, uint8_t start, uint8_t bytes) {
-  uint32_t response = 0;
-  switch (bytes) {
-    case 2:
-      response |= message.at(start) << 8;
-      response |= message.at(start + 1);
-      break;
-    case 4:
-      response |= message.at(start) << 24;
-      response |= message.at(start + 1) << 16;
-      response |= message.at(start + 2) << 8;
-      response |= message.at(start + 3);
-      break;
-    default:
-      ESP_LOGE(LOGGING_TAG, "Received incorrect value for bytes parameter in GoodweAA55::parse_int. Value: %d", bytes);
-      return 0;
-  }
-
-  return response;
 }
 }  // namespace goodwe_aa55
 }  // namespace esphome
