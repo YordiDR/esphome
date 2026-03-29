@@ -7,6 +7,8 @@
 #include <cmath>
 #include <string>
 #include <algorithm>
+#include <chrono>  // to remove after aa55 bus component implementation
+#include <thread>  // to remove after aa55 bus component implementation
 
 namespace esphome {
 namespace goodwe_aa55 {
@@ -56,6 +58,7 @@ void GoodweAA55::update() {
   // Parse updated sensor info
   this->parse_run_info_response(response_payload);
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(450));
   // Get updated ID info from inverter
   this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_ID_INFO, EMPTY_VECTOR);
   response_payload = this->await_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::ID_INFO_RESPONSE);
