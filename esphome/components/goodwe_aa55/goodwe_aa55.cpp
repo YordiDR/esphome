@@ -279,7 +279,7 @@ std::vector<uint8_t> GoodweAA55::await_packet(uint8_t expected_source_address, C
         ESP_LOGD(LOGGING_TAG, "Received packet with expected headers");
       } else {
         ESP_LOGD(LOGGING_TAG, "Received packet which is not what we expect. Received packet with headers: %s",
-                 this->create_hex_string(std::vector<uint8_t>(buffer_deque.begin(), buffer_deque.begin() + 5)).c_str());
+                 this->create_hex_string(std::vector<uint8_t>(buffer_deque.begin(), buffer_deque.begin() + 6)).c_str());
         ESP_LOGD(LOGGING_TAG, "Removing unexpected packet from buffer...");
         buffer_deque.erase(buffer_deque.begin(), buffer_deque.begin() + packet_size);
         packet_header_found = false;
