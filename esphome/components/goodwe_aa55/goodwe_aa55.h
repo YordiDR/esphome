@@ -12,6 +12,14 @@
 namespace esphome {
 namespace goodwe_aa55 {
 
+struct AA55Command {
+  const uint8_t source_address;
+  const uint8_t destination_address;
+  const CONTROL_CODE control_code;
+  const FUNCTION_CODE function_code;
+  const std::vector<uint8_t> payload;
+};
+
 class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
  public:
   GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t master_address);
@@ -37,11 +45,9 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   void parse_id_info_response(
       const std::vector<uint8_t> &payload);  // A method to parse the ID info data read from the inverter
   uint32_t parse_int(const std::vector<uint8_t> &message, uint8_t start, uint8_t bytes);
-  void send_packet(uint8_t destination_address, CONTROL_CODE control_code, FUNCTION_CODE function_code,
-                   const std::vector<uint8_t> &payload);  // Function that generates the packet and sends it via UART
-  std::vector<uint8_t> await_packet(
-      uint8_t expected_source_address, CONTROL_CODE expected_control_code,
-      FUNCTION_CODE expected_function_code);  // Function that awaits a packet via UART, returns packet payload
+  void send_packet(const AA55Command &command);  // Function that generates the packet and sends it via UART
+  std::vector<uint8_t> await_response(
+      const AA55Command &command);  // Function that awaits the response to a packet via UART, returns packet payload
   std::vector<uint8_t> calculate_checksum(const std::vector<uint8_t> &packet);
   template<typename T> std::string create_hex_string(const T &data) {
     std::string result;

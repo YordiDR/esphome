@@ -12,7 +12,6 @@
 
 namespace esphome {
 namespace goodwe_aa55 {
-
 GoodweAA55::GoodweAA55(std::string serial_number, uint8_t slave_address, uint8_t master_address) {
   serial_number_ = serial_number;
   slave_address_ = slave_address;
@@ -29,7 +28,9 @@ void GoodweAA55::setup() {
   }
 
   // Send deregister command to inverter at ESP startup so we can register it again
-  this->send_packet(this->slave_address_, CONTROL_CODE::REGISTER, FUNCTION_CODE::REMOVE_REG, EMPTY_VECTOR);
+  const AA55Command remove_register = {this->master_address_, this->slave_address_, CONTROL_CODE::REGISTER,
+                                       FUNCTION_CODE::REMOVE_REG, EMPTY_VECTOR};
+  this->send_packet(remove_register);
 }
 
 void GoodweAA55::dump_config() {
@@ -47,9 +48,10 @@ void GoodweAA55::loop() {
 
 void GoodweAA55::update() {
   // Get updated running info from inverter
-  this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_RUN_INFO, EMPTY_VECTOR);
-  std::vector<uint8_t> response_payload =
-      this->await_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::RUN_INFO_RESPONSE);
+  const AA55Command query_run_info = {this->master_address_, DEFAULT_ADDRESS, CONTROL_CODE::READ,
+                                      FUNCTION_CODE::QUERY_RUN_INFO, EMPTY_VECTOR};
+  this->send_packet(query_run_info);
+  std::vector<uint8_t> response_payload = this->await_response(query_run_info);
 
   if (response_payload == EMPTY_VECTOR) {
     return;
@@ -60,8 +62,10 @@ void GoodweAA55::update() {
 
   std::this_thread::sleep_for(std::chrono::milliseconds(450));
   // Get updated ID info from inverter
-  this->send_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::QUERY_ID_INFO, EMPTY_VECTOR);
-  response_payload = this->await_packet(DEFAULT_ADDRESS, CONTROL_CODE::READ, FUNCTION_CODE::ID_INFO_RESPONSE);
+  const AA55Command query_id_info = {this->master_address_, DEFAULT_ADDRESS, CONTROL_CODE::READ,
+                                     FUNCTION_CODE::QUERY_ID_INFO, EMPTY_VECTOR};
+  this->send_packet(query_id_info);
+  response_payload = this->await_response(query_id_info);
 
   if (response_payload == EMPTY_VECTOR) {
     return;
@@ -179,16 +183,15 @@ void GoodweAA55::parse_id_info_response(const std::vector<uint8_t> &payload) {
   }
 }
 
-void GoodweAA55::send_packet(uint8_t destination_address, CONTROL_CODE control_code, FUNCTION_CODE function_code,
-                             const std::vector<uint8_t> &payload) {
+void GoodweAA55::send_packet(const AA55Command &command) {
   std::vector<uint8_t> packet = HEADERS;  // Initialize message with AA55 header, then add command details
-  packet.push_back(this->master_address_);
-  packet.push_back(destination_address);
-  packet.push_back((uint8_t) control_code);
-  packet.push_back((uint8_t) function_code);
-  packet.push_back(payload.size());
-  if (payload != EMPTY_VECTOR) {
-    packet.insert(packet.end(), payload.begin(), payload.end());
+  packet.push_back(command.source_address);
+  packet.push_back(command.destination_address);
+  packet.push_back((uint8_t) command.control_code);
+  packet.push_back((uint8_t) command.function_code);
+  packet.push_back(command.payload.size());
+  if (command.payload != EMPTY_VECTOR) {
+    packet.insert(packet.end(), command.payload.begin(), command.payload.end());
   }
   const std::vector<uint8_t> checksum = this->calculate_checksum(packet);
   packet.insert(packet.end(), checksum.begin(), checksum.end());
@@ -196,8 +199,7 @@ void GoodweAA55::send_packet(uint8_t destination_address, CONTROL_CODE control_c
   this->write_array(packet);  // Send packet over UART
 }
 
-std::vector<uint8_t> GoodweAA55::await_packet(uint8_t expected_source_address, CONTROL_CODE expected_control_code,
-                                              FUNCTION_CODE expected_function_code) {
+std::vector<uint8_t> GoodweAA55::await_response(const AA55Command &command) {
   const uint8_t buffer_max_size{64};
   bool packet_header_found{false};
   int packet_size{-1};
@@ -275,9 +277,9 @@ std::vector<uint8_t> GoodweAA55::await_packet(uint8_t expected_source_address, C
       }
 
       // Check if the packet is what we expect, if not, drop it and continue looking for the response
-      if (buffer_deque.at(2) == expected_source_address && buffer_deque.at(3) == this->master_address_ &&
-          buffer_deque.at(4) == (uint8_t) expected_control_code &&
-          buffer_deque.at(5) == (uint8_t) expected_function_code) {
+      if (buffer_deque.at(2) == command.destination_address && buffer_deque.at(3) == command.source_address &&
+          buffer_deque.at(4) == (uint8_t) command.control_code &&
+          buffer_deque.at(5) == (uint8_t) command.function_code + 128) {
         packet_fully_received = true;
         ESP_LOGD(LOGGING_TAG, "Received packet with expected headers");
       } else {
