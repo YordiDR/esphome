@@ -49,6 +49,7 @@ class GoodweAA55 : public uart::UARTDevice, public PollingComponent {
   std::vector<uint8_t> await_response(
       const AA55Command &command);  // Function that awaits the response to a packet via UART, returns packet payload
   std::vector<uint8_t> calculate_checksum(const std::vector<uint8_t> &packet);
+  void drain_uart_rx_buffer();  // Function that removes all content from the UART RX buffer
   template<typename T> std::string create_hex_string(const T &data) {
     std::string result;
     result.reserve(data.size() * 3);

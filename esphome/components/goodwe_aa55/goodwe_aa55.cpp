@@ -50,6 +50,7 @@ void GoodweAA55::update() {
   // Get updated running info from inverter
   const AA55Command query_run_info = {this->master_address_, DEFAULT_ADDRESS, CONTROL_CODE::READ,
                                       FUNCTION_CODE::QUERY_RUN_INFO, EMPTY_VECTOR};
+  this->drain_uart_rx_buffer();
   this->send_packet(query_run_info);
   std::vector<uint8_t> response_payload = this->await_response(query_run_info);
 
@@ -64,6 +65,7 @@ void GoodweAA55::update() {
   // Get updated ID info from inverter
   const AA55Command query_id_info = {this->master_address_, DEFAULT_ADDRESS, CONTROL_CODE::READ,
                                      FUNCTION_CODE::QUERY_ID_INFO, EMPTY_VECTOR};
+  this->drain_uart_rx_buffer();
   this->send_packet(query_id_info);
   response_payload = this->await_response(query_id_info);
 
@@ -325,6 +327,16 @@ std::vector<uint8_t> GoodweAA55::calculate_checksum(const std::vector<uint8_t> &
   ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d, {%x, %x}", crc, (uint8_t) (crc >> 8), (uint8_t) crc);
   const std::vector<uint8_t> crc_bytes{(uint8_t) (crc >> 8), (uint8_t) crc};
   return crc_bytes;
+}
+
+void GoodweAA55::drain_uart_rx_buffer() {
+  uint8_t buf[64];
+  size_t avail;
+  while ((avail = this->available()) > 0) {
+    if (!this->read_array(buf, std::min(avail, sizeof(buf)))) {
+      break;
+    }
+  }
 }
 }  // namespace goodwe_aa55
 }  // namespace esphome
