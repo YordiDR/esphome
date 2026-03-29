@@ -1,30 +1,29 @@
 #pragma once
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/component.h"
-#include "../goodwe_aa55_base_sensor.h"
-#include "../const.h"
+#include "../aa55_inverter_base_sensor.h"
 #include <string>
 #include <vector>
 
 namespace esphome {
-namespace goodwe_aa55 {
+namespace aa55_inverter {
 
-class GoodweAA55TextSensor : public GoodweAA55BaseSensor, public text_sensor::TextSensor, public Component {
+class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor::TextSensor, public Component {
  public:
   void parse_payload(const std::vector<uint8_t> &payload) {
     switch (this->type_) {
-      case SENSOR_TYPE::WORK_MODE:
+      case aa55_const::SENSOR_TYPE::WORK_MODE:
         this->parse_work_mode_payload(payload);
         break;
-      case SENSOR_TYPE::ERROR_CODES:
+      case aa55_const::SENSOR_TYPE::ERROR_CODES:
         this->parse_error_codes_payload(payload);
         break;
-      case SENSOR_TYPE::FIRMWARE_VERSION:
-      case SENSOR_TYPE::MODEL:
-      case SENSOR_TYPE::SERIAL_NUMBER:
-      case SENSOR_TYPE::NOM_VPV:
-      case SENSOR_TYPE::INTERNAL_VERSION:
-      case SENSOR_TYPE::SAFETY_COUNTRY_CODE:
+      case aa55_const::SENSOR_TYPE::FIRMWARE_VERSION:
+      case aa55_const::SENSOR_TYPE::MODEL:
+      case aa55_const::SENSOR_TYPE::SERIAL_NUMBER:
+      case aa55_const::SENSOR_TYPE::NOM_VPV:
+      case aa55_const::SENSOR_TYPE::INTERNAL_VERSION:
+      case aa55_const::SENSOR_TYPE::SAFETY_COUNTRY_CODE:
         this->parse_ascii_payload(payload);
     }
   }
@@ -35,8 +34,8 @@ class GoodweAA55TextSensor : public GoodweAA55BaseSensor, public text_sensor::Te
     ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 text sensor");
     ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
     ESP_LOGCONFIG(LOGGING_TAG, "  Skip Updates: %d", this->skip_updates_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_));
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_));
+    ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", aa55_const::MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_));
+    ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", aa55_const::MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_));
   }
 
  protected:
@@ -52,7 +51,7 @@ class GoodweAA55TextSensor : public GoodweAA55BaseSensor, public text_sensor::Te
     if (work_mode_code > 2) {
       this->newest_value = "Unknown: " + std::to_string(work_mode_code);
     } else {
-      this->newest_value = WORK_MODE_LIST[work_mode_code];
+      this->newest_value = aa55_const::WORK_MODE_LIST[work_mode_code];
     }
   }
 
@@ -65,7 +64,7 @@ class GoodweAA55TextSensor : public GoodweAA55BaseSensor, public text_sensor::Te
           if (!this->newest_value.empty()) {
             this->newest_value += ", ";
           }
-          this->newest_value += ERROR_CODE_LIST[i];
+          this->newest_value += aa55_const::ERROR_CODE_LIST[i];
         }
       }
     } else {
@@ -74,5 +73,5 @@ class GoodweAA55TextSensor : public GoodweAA55BaseSensor, public text_sensor::Te
   }
 };
 
-}  // namespace goodwe_aa55
+}  // namespace aa55_inverter
 }  // namespace esphome

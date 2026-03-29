@@ -4,9 +4,11 @@
 #include "const.h"
 
 namespace esphome {
-namespace goodwe_aa55 {
+namespace aa55_inverter {
 
-class GoodweAA55BaseSensor {
+static const char *LOGGING_TAG = "aa55_inverter";
+
+class AA55InverterBaseSensor {
  public:
   uint16_t get_skip_updates() { return this->skip_updates_; }
 
@@ -20,22 +22,22 @@ class GoodweAA55BaseSensor {
 
   bool time_to_update() { return this->skipped_updates_ == this->skip_updates_; }
 
-  SENSOR_TYPE get_type() { return this->type_; }
+  aa55_const::SENSOR_TYPE get_type() { return this->type_; }
 
-  void set_type(SENSOR_TYPE type) { this->type_ = type; }
+  void set_type(aa55_const::SENSOR_TYPE type) { this->type_ = type; }
 
   std::string get_id() { return this->id_; }
 
   void set_id(std::string id) { this->id_ = id; }
 
-  uint8_t get_payload_location() { return MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_); }
+  uint8_t get_payload_location() { return aa55_const::MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_); }
 
-  uint8_t get_payload_length() { return MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_); }
+  uint8_t get_payload_length() { return aa55_const::MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_); }
 
  protected:
   uint16_t skip_updates_{0};
   uint16_t skipped_updates_{0};
-  SENSOR_TYPE type_{};
+  aa55_const::SENSOR_TYPE type_{};
   std::string id_{};
 
   uint32_t parse_int(const std::vector<uint8_t> &payload) {
@@ -56,5 +58,5 @@ class GoodweAA55BaseSensor {
   }
 };
 
-}  // namespace goodwe_aa55
+}  // namespace aa55_inverter
 }  // namespace esphome
