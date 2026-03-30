@@ -4,12 +4,14 @@
 #include "sensor/aa55_inverter_sensor.h"
 #include "text_sensor/aa55_inverter_text_sensor.h"
 #include "const.h"
-#include "../aa55_bus/aa55_bus.h"
 #include <string>
 #include <vector>
-#include <deque>
+#include <queue>
 
 namespace esphome {
+namespace aa55_bus {
+class AA55Bus;  // Forward declaration of AA55Bus class to avoid circular dependency
+}
 namespace aa55_inverter {
 
 class AA55Inverter : public PollingComponent {
@@ -21,17 +23,20 @@ class AA55Inverter : public PollingComponent {
   void update() override;
   void add_sensor(AA55InverterSensor *sensor);
   void add_text_sensor(AA55InverterTextSensor *sensor);
-  aa55_bus::AA55Bus *get_parent_bus() { return this->parent_bus_; };
+  uint8_t get_slave_address() { return this->slave_address_; };
   void set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; };
+  void queue_response_packet(const aa55_const::AA55Packet &packet) { this->response_packets_buffer_.push(packet); };
 
  protected:
   // Internal variables
   std::string serial_number_;
-  uint8_t slave_address_, inverter_offline_countdown_ = aa55_const::INVERTER_OFFLINE_COUNTDOWN_RESET;
+  uint8_t slave_address_;
   std::vector<AA55InverterSensor *> sensors_;
   std::vector<AA55InverterTextSensor *> text_sensors_;
   bool inverter_online_ = false;
   aa55_bus::AA55Bus *parent_bus_{nullptr};
+  std::queue<aa55_const::AA55Packet> response_packets_buffer_;
+  uint32_t last_packet_received_{0};
 
   // Functions
   void parse_run_info_response(

@@ -1,5 +1,6 @@
 #include "esphome/core/log.h"
 #include "aa55_inverter.h"
+#include "../aa55_bus/aa55_bus.h"
 #include <iterator>
 #include <cmath>
 #include <algorithm>
@@ -21,10 +22,10 @@ void AA55Inverter::setup() {
   }
 
   // Send deregister command to inverter at ESP startup so we can register it again
-  const aa55_const::AA55Command remove_register = {this->parent_bus_->get_master_address(), this->slave_address_,
-                                                   aa55_const::CONTROL_CODE::REGISTER,
-                                                   aa55_const::FUNCTION_CODE::REMOVE_REG, aa55_const::EMPTY_VECTOR};
-  this->parent_bus_->send_packet(remove_register);
+  const aa55_const::AA55Packet remove_register_command = {
+      this->parent_bus_->get_master_address(), this->slave_address_, aa55_const::CONTROL_CODE::REGISTER,
+      aa55_const::FUNCTION_CODE::REMOVE_REG, aa55_const::EMPTY_VECTOR};
+  this->parent_bus_->queue_command(remove_register_command);
 }
 
 void AA55Inverter::dump_config() {
@@ -36,59 +37,28 @@ void AA55Inverter::dump_config() {
 }
 
 void AA55Inverter::loop() {
-  // TODO If inverter is unregistered, send out offline requests to discover when it comes online, process registration
-  // TODO send register command every 10s
-}
+  while (!this->response_packets_buffer_.empty()) {
+    this->last_packet_received_ = millis();
 
-void AA55Inverter::update() {
-  // Get updated running info from inverter
-  const aa55_const::AA55Command query_run_info = {this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS,
-                                                  aa55_const::CONTROL_CODE::READ,
-                                                  aa55_const::FUNCTION_CODE::QUERY_RUN_INFO, aa55_const::EMPTY_VECTOR};
-  this->parent_bus_->drain_uart_rx_buffer();
-  this->parent_bus_->send_packet(query_run_info);
-  std::vector<uint8_t> response_payload = this->parent_bus_->await_response(query_run_info);
+    if (!this->inverter_online_) {
+      this->inverter_online_ = true;
+    }
 
-  if (response_payload == aa55_const::EMPTY_VECTOR) {
-    if (this->inverter_online_) {
-      this->inverter_offline_countdown_--;
-      if (this->inverter_offline_countdown_ == 0) {
-        ESP_LOGI(LOGGING_TAG, "Considering inverter offline due to countdown.");
-        this->inverter_online_ = false;
+    // Parse packet
+    aa55_const::AA55Packet *packet = &this->response_packets_buffer_.front();
+    if (packet->control_code == aa55_const::CONTROL_CODE::READ) {
+      if (packet->function_code == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
+        this->parse_run_info_response(packet->payload);
+      } else if (this->response_packets_buffer_.front().function_code == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
+        this->parse_id_info_response(packet->payload);
       }
     }
-    return;
+
+    this->response_packets_buffer_.pop();
   }
 
-  // Mark inverter as online if it was previously online since we succesfully received a response
-  if (!this->inverter_online_) {
-    this->inverter_online_ = true;
-    this->inverter_offline_countdown_ = aa55_const::INVERTER_OFFLINE_COUNTDOWN_RESET;
-  }
-
-  if (response_payload == aa55_const::EMPTY_VECTOR) {
-    return;
-  }
-
-  // Parse updated sensor info
-  this->parse_run_info_response(response_payload);
-
-  // Get updated ID info from inverter
-  const aa55_const::AA55Command query_id_info = {this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS,
-                                                 aa55_const::CONTROL_CODE::READ,
-                                                 aa55_const::FUNCTION_CODE::QUERY_ID_INFO, aa55_const::EMPTY_VECTOR};
-  this->parent_bus_->drain_uart_rx_buffer();
-  this->parent_bus_->send_packet(query_id_info);
-  response_payload = this->parent_bus_->await_response(query_id_info);
-
-  if (response_payload == aa55_const::EMPTY_VECTOR) {
-    return;
-  }
-
-  // Parse updated sensor info
-  this->parse_id_info_response(response_payload);
-
-  if (!this->inverter_online_) {
+  if (this->inverter_online_ && millis() > this->last_packet_received_ + 30000) {
+    this->inverter_online_ = false;
     // Set all sensors to an unknown state
     for (AA55InverterSensor *sensor : this->sensors_) {
       sensor->publish_state(NAN);
@@ -103,28 +73,20 @@ void AA55Inverter::update() {
       }
     }
   }
+}
 
-  // Publish most recent sensor values if applicable
-  for (AA55InverterSensor *sensor : this->sensors_) {
-    if (sensor->time_to_update()) {
-      sensor->publish_state(sensor->get_newest_value());
-      if (sensor->get_skip_updates() != 0) {
-        sensor->reset_skipped_updates();
-      }
-    } else {
-      sensor->increment_skipped_updates();
-    }
-  }
-  for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (sensor->time_to_update()) {
-      sensor->publish_state(sensor->get_newest_value());
-      if (sensor->get_skip_updates() != 0) {
-        sensor->reset_skipped_updates();
-      }
-    } else {
-      sensor->increment_skipped_updates();
-    }
-  }
+void AA55Inverter::update() {
+  // Get updated running info from inverter
+  const aa55_const::AA55Packet query_run_info_command = {
+      this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
+      aa55_const::FUNCTION_CODE::QUERY_RUN_INFO, aa55_const::EMPTY_VECTOR};
+  this->parent_bus_->queue_command(query_run_info_command);
+
+  // Get updated ID info from inverter
+  const aa55_const::AA55Packet query_id_info_command = {
+      this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
+      aa55_const::FUNCTION_CODE::QUERY_ID_INFO, aa55_const::EMPTY_VECTOR};
+  this->parent_bus_->queue_command(query_id_info_command);
 }
 
 void AA55Inverter::add_sensor(AA55InverterSensor *sensor) { this->sensors_.push_back(sensor); }
@@ -144,13 +106,22 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
     return;
   }
 
-  // Save received values in the sensor attributes
+  // Save received values in the sensor attributes + publish state if applicable
   for (AA55InverterSensor *sensor : this->sensors_) {
     if (aa55_const::MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
       ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+
+      if (sensor->time_to_update()) {
+        sensor->publish_state(sensor->get_newest_value());
+        if (sensor->get_skip_updates() != 0) {
+          sensor->reset_skipped_updates();
+        }
+      } else {
+        sensor->increment_skipped_updates();
+      }
     }
   }
 
@@ -160,6 +131,15 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
       ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+
+      if (sensor->time_to_update()) {
+        sensor->publish_state(sensor->get_newest_value());
+        if (sensor->get_skip_updates() != 0) {
+          sensor->reset_skipped_updates();
+        }
+      } else {
+        sensor->increment_skipped_updates();
+      }
     }
   }
 }

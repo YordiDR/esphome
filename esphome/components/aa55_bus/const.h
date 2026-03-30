@@ -4,9 +4,8 @@
 namespace esphome {
 namespace aa55_const {
 
-static const uint8_t MAX_BUFFER_LENGTH = 160;  // Max characters for serial buffer, 150 bytes is the length of the
-                                               // response to the longest command (read running info list)
-static const uint8_t INVERTER_OFFLINE_COUNTDOWN_RESET = 5;
+static const uint16_t MAX_BUFFER_LENGTH = 512;  // Max characters for serial buffer, 150 bytes is the length of the
+                                                // response to the longest command (read running info list)
 static const std::vector<uint8_t> HEADERS = {0xAA, 0x55};
 static const std::vector<uint8_t> EMPTY_VECTOR = {};
 
@@ -29,7 +28,7 @@ enum class FUNCTION_CODE : uint8_t {
   SET_INFO_RESPONSE = 0x83
 };
 
-struct AA55Command {
+struct AA55Packet {
   const uint8_t source_address;
   const uint8_t destination_address;
   const CONTROL_CODE control_code;
