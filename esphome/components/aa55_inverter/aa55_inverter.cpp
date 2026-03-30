@@ -13,6 +13,7 @@ AA55Inverter::AA55Inverter(std::string serial_number, uint8_t slave_address) {
 }
 
 void AA55Inverter::setup() {
+  ESP_LOGD(LOGGING_TAG, "Invalidating all sensors as part of startup...");
   // Mark all sensors as unavailable
   for (AA55InverterSensor *sensor : this->sensors_) {
     sensor->publish_state(NAN);
@@ -22,6 +23,7 @@ void AA55Inverter::setup() {
   }
 
   // Send deregister command to inverter at ESP startup so we can register it again
+  ESP_LOGD(LOGGING_TAG, "Sending remove register command to bus for inverter %x", this->slave_address_);
   const aa55_const::AA55Packet remove_register_command = {
       this->parent_bus_->get_master_address(), this->slave_address_, aa55_const::CONTROL_CODE::REGISTER,
       aa55_const::FUNCTION_CODE::REMOVE_REG, aa55_const::EMPTY_VECTOR};
@@ -58,6 +60,7 @@ void AA55Inverter::loop() {
   }
 
   if (this->inverter_online_ && millis() > this->last_packet_received_ + 30000) {
+    ESP_LOGI(LOGGING_TAG, "Marking inverter %x offline due to no response.", this->slave_address_);
     this->inverter_online_ = false;
     // Set all sensors to an unknown state
     for (AA55InverterSensor *sensor : this->sensors_) {
@@ -77,12 +80,14 @@ void AA55Inverter::loop() {
 
 void AA55Inverter::update() {
   // Get updated running info from inverter
+  ESP_LOGD(LOGGING_TAG, "Sending query run info command to bus for inverter %x", this->slave_address_);
   const aa55_const::AA55Packet query_run_info_command = {
       this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
       aa55_const::FUNCTION_CODE::QUERY_RUN_INFO, aa55_const::EMPTY_VECTOR};
   this->parent_bus_->queue_command(query_run_info_command);
 
   // Get updated ID info from inverter
+  ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->slave_address_);
   const aa55_const::AA55Packet query_id_info_command = {
       this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
       aa55_const::FUNCTION_CODE::QUERY_ID_INFO, aa55_const::EMPTY_VECTOR};

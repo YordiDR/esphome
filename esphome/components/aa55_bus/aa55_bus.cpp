@@ -26,7 +26,7 @@ void AA55Bus::loop() {
     this->process_rx();
   }
 
-  // Send first queued packet if applicable, take into account 500ms delay before last sent packet
+  // Send first queued packet if applicable, take into account 500ms delay (see AA55 doc) before last sent packet
   if (!this->commands_to_send_.empty() && millis() > this->last_send_time_ + 500) {
     this->send_packet(this->commands_to_send_.front());
     this->commands_to_send_.pop();
