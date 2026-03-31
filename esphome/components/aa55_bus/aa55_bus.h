@@ -25,7 +25,6 @@ class AA55Bus : public uart::UARTDevice, public Component {
   uint8_t get_master_address() { return this->master_address_; };
   std::string get_component_id() { return this->id_; };
   void set_component_id(std::string id) { this->id_ = id; };
-  std::vector<uint8_t> calculate_checksum(const std::vector<uint8_t> &packet);
 
  protected:
   // Internal variables

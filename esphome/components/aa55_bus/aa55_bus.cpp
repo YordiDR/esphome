@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <climits>
+#include <numeric>
 
 namespace esphome {
 namespace aa55_bus {
@@ -46,8 +47,10 @@ void AA55Bus::send_packet(const aa55_const::AA55Packet &command) {
   if (command.payload != aa55_const::EMPTY_VECTOR) {
     packet.insert(packet.end(), command.payload.begin(), command.payload.end());
   }
-  const std::vector<uint8_t> checksum = this->calculate_checksum(packet);
-  packet.insert(packet.end(), checksum.begin(), checksum.end());
+  const uint16_t checksum = std::accumulate(packet.begin(), packet.end(), 0);
+  packet.push_back((uint8_t) (checksum >> 8));
+  packet.push_back((uint8_t) checksum);
+
   ESP_LOGD(LOGGING_TAG, "Sending packet %s", this->create_hex_string(packet).c_str());
   this->write_array(packet);  // Send packet over UART
 }
@@ -146,14 +149,15 @@ void AA55Bus::process_rx() {
 
     ESP_LOGD(LOGGING_TAG, "Packet of %d bytes was fully received from UART.", packet_size);
     ESP_LOGD(LOGGING_TAG, "Verifying received packet checksum...");
-    const std::vector<uint8_t> calculated_crc_bytes = this->calculate_checksum(
-        std::vector<uint8_t>(this->receive_buffer_.begin(),
-                             this->receive_buffer_.begin() + packet_size -
-                                 2));  // Calculate checksum of received packet without received CRC bytes
+    const uint16_t calculated_checksum =
+        std::accumulate(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size - 2, 0);
+    const uint16_t received_checksum =
+        ((uint16_t) this->receive_buffer_.at(packet_size - 2) << 8) | this->receive_buffer_.at(packet_size - 1);
 
-    if (this->receive_buffer_.at(packet_size - 2) != calculated_crc_bytes.at(0) ||
-        this->receive_buffer_.at(packet_size - 1) != calculated_crc_bytes.at(1)) {
-      ESP_LOGW(LOGGING_TAG, "Packet has an incorrect checksum, discarding it...");
+    if (received_checksum != calculated_checksum) {
+      ESP_LOGW(LOGGING_TAG,
+               "Packet has an incorrect checksum, received checksum %d, calculated checksum %d. Discarding...",
+               received_checksum, calculated_checksum);
       this->receive_buffer_.erase(
           this->receive_buffer_.begin(),
           this->receive_buffer_.begin() +
@@ -206,19 +210,6 @@ void AA55Bus::process_rx() {
     packet_header_found = false;
     packet_size = UINT8_MAX;
   }
-}
-
-std::vector<uint8_t> AA55Bus::calculate_checksum(const std::vector<uint8_t> &packet) {
-  uint16_t crc = 0;
-  ESP_LOGD(LOGGING_TAG, "Calculating CRC for packet '%s'...", this->create_hex_string(packet).c_str());
-  for (uint8_t byte : packet) {
-    ESP_LOGVV(LOGGING_TAG, "Checksum calculation: adding value %x to current CRC value (%d)", byte, crc);
-    crc += byte;
-  }
-
-  ESP_LOGD(LOGGING_TAG, "Calculated CRC value: %d, {%x, %x}", crc, (uint8_t) (crc >> 8), (uint8_t) crc);
-  const std::vector<uint8_t> crc_bytes{(uint8_t) (crc >> 8), (uint8_t) crc};
-  return crc_bytes;
 }
 }  // namespace aa55_bus
 }  // namespace esphome
