@@ -20,6 +20,9 @@ class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor,
           std::stoi(std::string(payload.begin() + this->get_payload_location(),
                                 payload.begin() + this->get_payload_location() + this->get_payload_length())) /
           10.0;
+    } else if (this->type ==
+               aa55_const::SENSOR_TYPE::SAFETY_COUNTRY_CODE) {  // This is 1 byte so no int parsing is necessary
+      this->newest_value = payload.at(this->get_payload_location());
     } else {
       this->newest_value =
           this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
