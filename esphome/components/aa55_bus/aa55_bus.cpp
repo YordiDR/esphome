@@ -193,13 +193,8 @@ void AA55Bus::process_rx() {
     ESP_LOGD(LOGGING_TAG, "Received packet from a registered inverter (%x).", packet_source_address);
 
     // Pass packet to inverter object
-    ESP_LOGD(LOGGING_TAG,
-             "Payload that bus will parse: %d bytes, first byte is received_payload[6] (%x), last byte is "
-             "received_payload[%d] (%x)",
-             this->receive_buffer_.at(6), this->receive_buffer_.at(6), 6 + this->receive_buffer_.at(6) - 1,
-             this->receive_buffer_.at(6 + this->receive_buffer_.at(6) - 1));
-    const std::vector<uint8_t> received_payload(this->receive_buffer_.begin() + 6,
-                                                this->receive_buffer_.begin() + 6 + this->receive_buffer_.at(6));
+    const std::vector<uint8_t> received_payload(this->receive_buffer_.begin() + 7,
+                                                this->receive_buffer_.begin() + packet_size - 2);
     const aa55_const::AA55Packet response_packet = {packet_source_address, this->receive_buffer_.at(3),
                                                     static_cast<aa55_const::CONTROL_CODE>(this->receive_buffer_.at(4)),
                                                     static_cast<aa55_const::FUNCTION_CODE>(this->receive_buffer_.at(5)),
