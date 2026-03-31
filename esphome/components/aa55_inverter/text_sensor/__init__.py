@@ -35,12 +35,6 @@ CONFIG_SCHEMA = (
                 {cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}
             ),
             cv.Optional(
-                CONF_FIRMWARE_VERSION,
-                default={CONF_ID: "firmware_version", CONF_NAME: "Firmware version"},
-            ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
-            ),
-            cv.Optional(
                 CONF_MODEL, default={CONF_ID: "model", CONF_NAME: "Model"}
             ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
                 {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
@@ -48,12 +42,6 @@ CONFIG_SCHEMA = (
             cv.Optional(
                 CONF_SERIAL_NUMBER,
                 default={CONF_ID: "serial_number", CONF_NAME: "Serial number"},
-            ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
-            ),
-            cv.Optional(
-                CONF_INTERNAL_VERSION,
-                default={CONF_ID: "internal_version", CONF_NAME: "Internal version"},
             ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
                 {cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}
             ),

@@ -10,26 +10,11 @@ namespace aa55_inverter {
 class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor, public Component {
  public:
   void parse_payload(const std::vector<uint8_t> &payload) {
-    if (this->type_ ==
-        aa55_const::SENSOR_TYPE::NOM_VPV) {  // NOM_VPV is a special case, it is an ASCII encoded string containing
-                                             // the nominal Voltage (int with 1 decimal precision)
-      std::string nom_vpv_string =
-          std::string(payload.begin() + this->get_payload_location(),
-                      payload.begin() + this->get_payload_location() + this->get_payload_length());
-      this->newest_value =
-          std::stoi(std::string(payload.begin() + this->get_payload_location(),
-                                payload.begin() + this->get_payload_location() + this->get_payload_length())) /
-          10.0;
-    } else if (this->type ==
-               aa55_const::SENSOR_TYPE::SAFETY_COUNTRY_CODE) {  // This is 1 byte so no int parsing is necessary
-      this->newest_value = payload.at(this->get_payload_location());
-    } else {
-      this->newest_value =
-          this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
-    }
+    this->newest_value_ =
+        this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
   }
 
-  float get_newest_value() { return this->newest_value; }
+  float get_newest_value() { return this->newest_value_; }
 
   void dump_config() override {
     ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter text sensor");
@@ -40,7 +25,7 @@ class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor,
   }
 
  protected:
-  float newest_value{NAN};
+  float newest_value_{NAN};
 };
 
 }  // namespace aa55_inverter

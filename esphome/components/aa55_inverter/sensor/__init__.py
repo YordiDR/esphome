@@ -192,30 +192,6 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_ENERGY,
             ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
-            cv.Optional(
-                CONF_NOM_VPV,
-                default={
-                    CONF_ID: "nom_vpv",
-                    CONF_NAME: "Nominal PV Voltage (nom_Vpv)",
-                },
-            ): sensor.sensor_schema(
-                class_=AA55InverterSensor,
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=1,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}),
-            cv.Optional(
-                CONF_SAFETY_COUNTRY_CODE,
-                default={
-                    CONF_ID: "safety_country_code",
-                    CONF_NAME: "Safety country code",
-                },
-            ): sensor.sensor_schema(
-                class_=AA55InverterSensor,
-                accuracy_decimals=0,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=720): cv.positive_int}),
         }
     )
     .extend(INVERTER_CHILD_SCHEMA)

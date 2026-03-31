@@ -163,15 +163,6 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
   }
 
   // Save received values in the sensor attributes
-  for (AA55InverterSensor *sensor : this->sensors_) {
-    if (aa55_const::MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
-      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-               sensor->get_payload_location(), sensor->get_payload_length());
-      sensor->parse_payload(payload);
-      ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
-    }
-  }
-
   for (AA55InverterTextSensor *sensor : this->text_sensors_) {
     if (aa55_const::MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
       ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),

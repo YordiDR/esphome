@@ -18,17 +18,12 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
       case aa55_const::SENSOR_TYPE::ERROR_CODES:
         this->parse_error_codes_payload(payload);
         break;
-      case aa55_const::SENSOR_TYPE::FIRMWARE_VERSION:
-      case aa55_const::SENSOR_TYPE::MODEL:
-      case aa55_const::SENSOR_TYPE::SERIAL_NUMBER:
-      case aa55_const::SENSOR_TYPE::NOM_VPV:
-      case aa55_const::SENSOR_TYPE::INTERNAL_VERSION:
-      case aa55_const::SENSOR_TYPE::SAFETY_COUNTRY_CODE:
+      default:
         this->parse_ascii_payload(payload);
     }
   }
 
-  std::string get_newest_value() { return this->newest_value; }
+  std::string get_newest_value() { return this->newest_value_; }
 
   void dump_config() override {
     ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 text sensor");
@@ -39,36 +34,36 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
   }
 
  protected:
-  std::string newest_value{};
+  std::string newest_value_{};
 
   void parse_ascii_payload(const std::vector<uint8_t> &payload) {
-    this->newest_value = std::string(payload.begin() + this->get_payload_location(),
-                                     payload.begin() + this->get_payload_location() + this->get_payload_length());
+    this->newest_value_ = std::string(payload.begin() + this->get_payload_location(),
+                                      payload.begin() + this->get_payload_location() + this->get_payload_length());
   }
 
   void parse_work_mode_payload(const std::vector<uint8_t> &payload) {
     uint32_t work_mode_code = this->parse_int(payload);
     if (work_mode_code > 2) {
-      this->newest_value = "Unknown: " + std::to_string(work_mode_code);
+      this->newest_value_ = "Unknown: " + std::to_string(work_mode_code);
     } else {
-      this->newest_value = aa55_const::WORK_MODE_LIST[work_mode_code];
+      this->newest_value_ = aa55_const::WORK_MODE_LIST[work_mode_code];
     }
   }
 
   void parse_error_codes_payload(const std::vector<uint8_t> &payload) {
     uint32_t error_codes_code = this->parse_int(payload);
     if (error_codes_code) {
-      this->newest_value = "";
+      this->newest_value_ = "";
       for (uint8_t i = 0; i < 32; ++i) {
         if (error_codes_code & (1 << i)) {
-          if (!this->newest_value.empty()) {
-            this->newest_value += ", ";
+          if (!this->newest_value_.empty()) {
+            this->newest_value_ += ", ";
           }
-          this->newest_value += aa55_const::ERROR_CODE_LIST[i];
+          this->newest_value_ += aa55_const::ERROR_CODE_LIST[i];
         }
       }
     } else {
-      this->newest_value = "No errors";
+      this->newest_value_ = "No errors";
     }
   }
 };
