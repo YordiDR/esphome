@@ -65,6 +65,9 @@ enum class SENSOR_TYPE : uint8_t {
   INTERNAL_VERSION,
   SAFETY_COUNTRY_CODE
 };
+enum class SWITCH_TYPE : uint8_t { START_STOP };
+enum class BUTTON_TYPE : uint8_t { RECONNECT_GRID };
+enum class NUMBER_TYPE : uint8_t { ADJUST_POWER };
 enum class ENCODING_TYPE : uint8_t { INTEGER, ASCII };
 
 const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LOCATION = {
