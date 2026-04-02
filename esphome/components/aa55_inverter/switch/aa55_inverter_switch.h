@@ -1,0 +1,54 @@
+#pragma once
+#include "esphome/components/switch/switch.h"
+#include "esphome/core/component.h"
+#include "../aa55_inverter_base_input.h"
+#include <string>
+
+namespace esphome {
+namespace aa55_inverter {
+
+class AA55InverterSwitch : public AA55InverterBaseInput, public switch_::Switch, public Component {
+ public:
+  void setup() override {
+    // Initialize as off
+    this->publish_state(false);
+  }
+  void dump_config() override {
+    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter switch");
+    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_.c_str());
+  }
+
+  void write_state(bool state) {
+    ESP_LOGD(LOGGING_TAG, "Switch %s was toggled, new state: %s", this->id_.c_str(), state ? "ON" : "OFF");
+    if (this->type_ == aa55_const::INPUT_TYPE::START_STOP) {
+      if (state) {
+        this->parent_inverter_->send_execute_command(aa55_const::FUNCTION_CODE::START_INVERTER);
+      } else {
+        this->parent_inverter_->send_execute_command(aa55_const::FUNCTION_CODE::STOP_INVERTER);
+      }
+    }
+  };
+
+  void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override {
+    if (response) {
+      ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",
+               this->parent_inverter_->get_slave_address(), ((uint8_t) function_code) & 0x7F);
+      return;
+    }
+
+    if (this->type_ == aa55_const::INPUT_TYPE::START_STOP &&
+        function_code == aa55_const::FUNCTION_CODE::START_INVERTER_RESPONSE) {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the start command.", this->parent_inverter_->get_slave_address());
+      this->publish_state(true);
+    } else if (this->type_ == aa55_const::INPUT_TYPE::START_STOP &&
+               function_code == aa55_const::FUNCTION_CODE::STOP_INVERTER_RESPONSE) {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the stop command.", this->parent_inverter_->get_slave_address());
+      this->publish_state(false);
+    } else {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x sensor %s got an incorrect function code %x as response.",
+               this->parent_inverter_->get_slave_address(), this->id_, function_code);
+    }
+  }
+};
+}  // namespace aa55_inverter
+}  // namespace esphome

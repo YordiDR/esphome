@@ -1,5 +1,6 @@
 #include "esphome/core/log.h"
 #include "aa55_inverter.h"
+#include "switch/aa55_inverter_switch.h"
 #include "../aa55_bus/aa55_bus.h"
 #include <iterator>
 #include <cmath>
@@ -44,16 +45,43 @@ void AA55Inverter::loop() {
 
     if (!this->inverter_online_) {
       this->inverter_online_ = true;
+
+      // Initialize inputs
+      for (AA55InverterBaseInput *input : this->inputs_) {
+        switch (input->get_type()) {
+          case aa55_const::INPUT_TYPE::START_STOP:
+            static_cast<AA55InverterSwitch *>(input)->publish_state(true);
+            break;
+        }
+      }
     }
 
     // Parse packet
     aa55_const::AA55Packet *packet = &this->response_packets_buffer_.front();
-    if (packet->control_code == aa55_const::CONTROL_CODE::READ) {
-      if (packet->function_code == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
-        this->parse_run_info_response(packet->payload);
-      } else if (this->response_packets_buffer_.front().function_code == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
-        this->parse_id_info_response(packet->payload);
-      }
+    switch (packet->control_code) {
+      case aa55_const::CONTROL_CODE::READ:
+        switch (packet->function_code) {
+          case aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE:
+            this->parse_run_info_response(packet->payload);
+            break;
+          case aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE:
+            this->parse_id_info_response(packet->payload);
+            break;
+          default:
+            ESP_LOGW(
+                LOGGING_TAG,
+                "Inverter %d received a response packet with control code %x and unknown function code %x. Skipping...",
+                this->slave_address_, packet->control_code, packet->function_code);
+        }
+        break;
+      case aa55_const::CONTROL_CODE::EXECUTE:
+        this->parse_execute_response(packet->function_code, packet->payload.at(0));
+        break;
+      default:
+        ESP_LOGW(
+            LOGGING_TAG,
+            "Inverter %d received a response packet with control code %x and unknown function code %x. Skipping...",
+            this->slave_address_, packet->control_code, packet->function_code);
     }
 
     this->response_packets_buffer_.pop();
@@ -65,6 +93,14 @@ void AA55Inverter::loop() {
     // Set all sensors to an unknown state
     for (AA55InverterSensor *sensor : this->sensors_) {
       sensor->publish_state(NAN);
+    }
+
+    for (AA55InverterBaseInput *input : this->inputs_) {
+      switch (input->get_type()) {
+        case aa55_const::INPUT_TYPE::START_STOP:
+          static_cast<AA55InverterSwitch *>(input)->publish_state(false);
+          break;
+      }
     }
 
     // Set all text sensors to an empty string besides WORK_MODE if it is defined
@@ -98,6 +134,8 @@ void AA55Inverter::add_sensor(AA55InverterSensor *sensor) { this->sensors_.push_
 
 void AA55Inverter::add_text_sensor(AA55InverterTextSensor *sensor) { this->text_sensors_.push_back(sensor); }
 
+void AA55Inverter::add_input(AA55InverterBaseInput *input) { this->inputs_.push_back(input); }
+
 void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) {
   ESP_LOGD(LOGGING_TAG, "Parsing run info response payload %s (%d bytes)", this->create_hex_string(payload).c_str(),
            payload.size());
@@ -113,7 +151,7 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
 
   // Save received values in the sensor attributes + publish state if applicable
   for (AA55InverterSensor *sensor : this->sensors_) {
-    if (aa55_const::MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
+    if (aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
@@ -131,7 +169,7 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
   }
 
   for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (aa55_const::MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
+    if (aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
@@ -164,7 +202,7 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
 
   // Save received values in the sensor attributes
   for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (aa55_const::MAP_SENSOR_PAYLOAD_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
+    if (aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
       ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
@@ -172,5 +210,29 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
     }
   }
 }
+
+void AA55Inverter::parse_execute_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) {
+  for (AA55InverterBaseInput *input : this->inputs_) {
+    if (aa55_const::MAP_INPUT_RESPONSE_SOURCE.at(input->get_type()) == function_code) {
+      ESP_LOGV(LOGGING_TAG, "Passing execute command response %x (payload %d) from inverter %x to input %s",
+               (uint8_t) function_code, response, this->get_slave_address(), input->get_id().c_str());
+      input->handle_response(function_code, response);
+    }
+  }
+}
+
+void AA55Inverter::send_execute_command(aa55_const::FUNCTION_CODE function_code, uint8_t payload) {
+  ESP_LOGD(LOGGING_TAG, "Sending execute command %x with payload %d to inverter %x", function_code, payload,
+           this->slave_address_);
+  std::vector<uint8_t> payload_vector;
+  if (function_code == aa55_const::FUNCTION_CODE::ADJUST_POWER) {
+    payload_vector.push_back(payload);
+  }
+
+  const aa55_const::AA55Packet execute_command = {this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS,
+                                                  aa55_const::CONTROL_CODE::EXECUTE, function_code, payload_vector};
+  this->parent_bus_->queue_command(execute_command);
+}
+
 }  // namespace aa55_inverter
 }  // namespace esphome
