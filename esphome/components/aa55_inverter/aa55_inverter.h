@@ -4,15 +4,13 @@
 #include "sensor/aa55_inverter_sensor.h"
 #include "text_sensor/aa55_inverter_text_sensor.h"
 #include "aa55_inverter_base_input.h"
+#include "../aa55_bus/aa55_bus.h"
 #include "const.h"
 #include <string>
 #include <vector>
 #include <queue>
 
 namespace esphome {
-namespace aa55_bus {
-class AA55Bus;  // Forward declaration of AA55Bus class to avoid circular dependency
-}
 namespace aa55_inverter {
 
 class AA55Inverter : public PollingComponent {
