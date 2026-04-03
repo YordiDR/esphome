@@ -40,7 +40,9 @@ void AA55Inverter::dump_config() {
 }
 
 void AA55Inverter::loop() {
-  while (!this->response_packets_buffer_.empty()) {
+  uint32_t start_time = millis();
+  while (!this->response_packets_buffer_.empty() &&
+         millis() < start_time + 30) {  // Avoid blocking the thread for 30ms+
     this->last_packet_received_ = millis();
 
     if (!this->inverter_online_) {

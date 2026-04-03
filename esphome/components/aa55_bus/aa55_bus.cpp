@@ -84,7 +84,7 @@ void AA55Bus::process_rx() {
   bool packet_fully_received{false};
 
   while (this->available() && this->receive_buffer_.size() < aa55_const::MAX_BUFFER_LENGTH &&
-         millis() < start_time + 30) {  // Avoid blocked the thread for 30ms+
+         millis() < start_time + 30) {  // Avoid blocking the thread for 30ms+
     // Read all available bytes in batches to reduce UART call overhead.
     const uint8_t avail = this->available();
     const size_t to_read = std::min(avail, buffer_max_size);
