@@ -56,6 +56,7 @@ void AA55Bus::send_packet(const aa55_const::AA55Packet &command) {
 }
 
 void AA55Bus::process_rx() {
+  uint32_t start_time = millis();
   // Drop all RX buffer contents on buffer overload
   if (this->receive_buffer_.size() >= aa55_const::MAX_BUFFER_LENGTH) {
     ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", this->create_hex_string(this->receive_buffer_));
@@ -68,7 +69,7 @@ void AA55Bus::process_rx() {
     // Clear UART buffer
     uint8_t buf[64];
     size_t avail;
-    while ((avail = this->available()) > 0) {
+    while ((avail = this->available()) > 0 && millis() < start_time + 30) {  // Avoid blocked the thread for 30ms+
       if (!this->read_array(buf, std::min(avail, sizeof(buf)))) {
         break;
       }
@@ -82,7 +83,8 @@ void AA55Bus::process_rx() {
   uint8_t packet_size{UINT8_MAX};
   bool packet_fully_received{false};
 
-  while (this->available() && this->receive_buffer_.size() < aa55_const::MAX_BUFFER_LENGTH) {
+  while (this->available() && this->receive_buffer_.size() < aa55_const::MAX_BUFFER_LENGTH &&
+         millis() < start_time + 30) {  // Avoid blocked the thread for 30ms+
     // Read all available bytes in batches to reduce UART call overhead.
     const uint8_t avail = this->available();
     const size_t to_read = std::min(avail, buffer_max_size);
