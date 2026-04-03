@@ -213,7 +213,7 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
 
 void AA55Inverter::parse_execute_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) {
   for (AA55InverterBaseInput *input : this->inputs_) {
-    if (aa55_const::MAP_INPUT_RESPONSE_SOURCE.at(input->get_type()) == function_code) {
+    if (input->get_type() == aa55_const::MAP_RESPONSE_INPUT.at(function_code)) {
       ESP_LOGV(LOGGING_TAG, "Passing execute command response %x (payload %d) from inverter %x to input %s",
                (uint8_t) function_code, response, this->get_slave_address(), input->get_id().c_str());
       input->handle_response(function_code, response);

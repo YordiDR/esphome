@@ -30,7 +30,7 @@ class AA55InverterSwitch : public AA55InverterBaseInput, public switch_::Switch,
   };
 
   void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override {
-    if (response) {
+    if (response != 6) {
       ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",
                this->parent_inverter_->get_slave_address(), ((uint8_t) function_code) & 0x7F);
       return;
