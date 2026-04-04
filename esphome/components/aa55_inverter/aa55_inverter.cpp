@@ -1,6 +1,7 @@
 #include "esphome/core/log.h"
 #include "aa55_inverter.h"
 #include "switch/aa55_inverter_switch.h"
+#include "number/aa55_inverter_number.h"
 #include "../aa55_bus/aa55_bus.h"
 #include <iterator>
 #include <cmath>
@@ -46,13 +47,25 @@ void AA55Inverter::loop() {
     this->last_packet_received_ = millis();
 
     if (!this->inverter_online_) {
+      ESP_LOGI(LOGGING_TAG, "Inverter %x on bus %s came online.", this->slave_address_,
+               this->parent_bus_->get_component_id().c_str());
       this->inverter_online_ = true;
+
+      // Get serial & model info
+      ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->slave_address_);
+      const aa55_const::AA55Packet query_id_info_command = {
+          this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
+          aa55_const::FUNCTION_CODE::QUERY_ID_INFO, aa55_const::EMPTY_VECTOR};
+      this->parent_bus_->queue_command(query_id_info_command);
 
       // Initialize inputs
       for (AA55InverterBaseInput *input : this->inputs_) {
         switch (input->get_type()) {
           case aa55_const::INPUT_TYPE::START_STOP:
             static_cast<AA55InverterSwitch *>(input)->publish_state(true);
+            break;
+          case aa55_const::INPUT_TYPE::ADJUST_POWER:
+            static_cast<AA55InverterNumber *>(input)->publish_state(100);
             break;
         }
       }
@@ -90,11 +103,36 @@ void AA55Inverter::loop() {
   }
 
   if (this->inverter_online_ && millis() > this->last_packet_received_ + 30000) {
-    ESP_LOGI(LOGGING_TAG, "Marking inverter %x offline due to no response.", this->slave_address_);
+    ESP_LOGI(LOGGING_TAG, "Marking inverter %x on bus %s offline due to no response.", this->slave_address_,
+             this->parent_bus_->get_component_id().c_str());
     this->inverter_online_ = false;
-    // Set all sensors to an unknown state
+
+    // Override sensor & input values to match offline state as best as possible
     for (AA55InverterSensor *sensor : this->sensors_) {
-      sensor->publish_state(NAN);
+      switch (sensor->get_type()) {
+        case aa55_const::SENSOR_TYPE::VPV1:
+        case aa55_const::SENSOR_TYPE::IPV1:
+        case aa55_const::SENSOR_TYPE::VPV2:
+        case aa55_const::SENSOR_TYPE::IPV2:
+        case aa55_const::SENSOR_TYPE::VAC1:
+        case aa55_const::SENSOR_TYPE::IAC1:
+        case aa55_const::SENSOR_TYPE::FAC1:
+        case aa55_const::SENSOR_TYPE::TEMPERATURE:
+          sensor->publish_state(NAN);
+          break;
+        case aa55_const::SENSOR_TYPE::PAC:
+          sensor->publish_state(0);
+      }
+    }
+
+    for (AA55InverterTextSensor *sensor : this->text_sensors_) {
+      switch (sensor->get_type()) {
+        case aa55_const::SENSOR_TYPE::WORK_MODE:
+          sensor->publish_state("Offline");
+          break;
+        case aa55_const::SENSOR_TYPE::ERROR_CODES:
+          sensor->publish_state("");
+      }
     }
 
     for (AA55InverterBaseInput *input : this->inputs_) {
@@ -102,15 +140,8 @@ void AA55Inverter::loop() {
         case aa55_const::INPUT_TYPE::START_STOP:
           static_cast<AA55InverterSwitch *>(input)->publish_state(false);
           break;
-      }
-    }
-
-    // Set all text sensors to an empty string besides WORK_MODE if it is defined
-    for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-      if (sensor->get_type() == aa55_const::SENSOR_TYPE::WORK_MODE) {
-        sensor->publish_state("Offline");
-      } else {
-        sensor->publish_state("");
+        case aa55_const::INPUT_TYPE::ADJUST_POWER:
+          static_cast<AA55InverterNumber *>(input)->publish_state(NAN);
       }
     }
   }
@@ -123,13 +154,6 @@ void AA55Inverter::update() {
       this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
       aa55_const::FUNCTION_CODE::QUERY_RUN_INFO, aa55_const::EMPTY_VECTOR};
   this->parent_bus_->queue_command(query_run_info_command);
-
-  // Get updated ID info from inverter
-  ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->slave_address_);
-  const aa55_const::AA55Packet query_id_info_command = {
-      this->parent_bus_->get_master_address(), aa55_const::DEFAULT_ADDRESS, aa55_const::CONTROL_CODE::READ,
-      aa55_const::FUNCTION_CODE::QUERY_ID_INFO, aa55_const::EMPTY_VECTOR};
-  this->parent_bus_->queue_command(query_id_info_command);
 }
 
 void AA55Inverter::add_sensor(AA55InverterSensor *sensor) { this->sensors_.push_back(sensor); }
