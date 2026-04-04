@@ -19,6 +19,7 @@ class AA55InverterSwitch : public AA55InverterBaseInput, public switch_::Switch,
   }
 
   void write_state(bool state) {
+    this->last_sent_value_ = state;
     ESP_LOGD(LOGGING_TAG, "Switch %s was toggled, new state: %s", this->id_.c_str(), state ? "ON" : "OFF");
     if (this->type_ == aa55_const::INPUT_TYPE::START_STOP) {
       if (state) {
@@ -39,16 +40,20 @@ class AA55InverterSwitch : public AA55InverterBaseInput, public switch_::Switch,
     if (this->type_ == aa55_const::INPUT_TYPE::START_STOP &&
         function_code == aa55_const::FUNCTION_CODE::START_INVERTER_RESPONSE) {
       ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the start command.", this->parent_inverter_->get_slave_address());
-      this->publish_state(true);
     } else if (this->type_ == aa55_const::INPUT_TYPE::START_STOP &&
                function_code == aa55_const::FUNCTION_CODE::STOP_INVERTER_RESPONSE) {
       ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the stop command.", this->parent_inverter_->get_slave_address());
-      this->publish_state(false);
     } else {
       ESP_LOGD(LOGGING_TAG, "Inverter %x sensor %s got an incorrect function code %x as response.",
                this->parent_inverter_->get_slave_address(), this->id_, function_code);
+      return;
     }
+
+    this->publish_state(this->last_sent_value_);
   }
+
+ protected:
+  bool last_sent_value_{};
 };
 }  // namespace aa55_inverter
 }  // namespace esphome

@@ -1,33 +1,55 @@
 #pragma once
 #include "esphome/components/number/number.h"
 #include "esphome/core/component.h"
+#include "../aa55_inverter_base_input.h"
 #include <string>
 
 namespace esphome {
 namespace aa55_inverter {
 
-class AA55InverterNumber : public number::Number, public Component {
+class AA55InverterNumber : public AA55InverterBaseInput, public number::Number, public Component {
  public:
-  void dump_config() override {
-    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter text sensor");
-    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Skip Updates: %d", this->skip_updates_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", aa55_const::MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_));
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", aa55_const::MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_));
+  void setup() override {
+    // Initialize as unknown
+    this->publish_state(NAN);
   }
 
-  aa55_const::NUMBER_TYPE get_type() { return this->type_; }
+  void dump_config() override {
+    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter number");
+    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_.c_str());
+  }
 
-  void set_type(aa55_const::NUMBER_TYPE type) { this->type_ = type; }
+  void control(float value) {
+    this->last_sent_value_ = value;
+    ESP_LOGD(LOGGING_TAG, "Number %s was changed, new state: %f", this->id_.c_str(), value);
+    if (this->type_ == aa55_const::INPUT_TYPE::ADJUST_POWER) {
+      this->parent_inverter_->send_execute_command(aa55_const::FUNCTION_CODE::ADJUST_POWER,
+                                                   static_cast<uint8_t>(value));
+    }
+  }
 
-  std::string get_id() { return this->id_; }
+  void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override {
+    if (response != 6) {
+      ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",
+               this->parent_inverter_->get_slave_address(), ((uint8_t) function_code) & 0x7F);
+      return;
+    }
 
-  void set_id(std::string id) { this->id_ = id; }
+    if (this->type_ == aa55_const::INPUT_TYPE::ADJUST_POWER &&
+        function_code == aa55_const::FUNCTION_CODE::ADJUST_POWER_RESPONSE) {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the adjust power command.",
+               this->parent_inverter_->get_slave_address());
+    } else {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x sensor %s got an incorrect function code %x as response.",
+               this->parent_inverter_->get_slave_address(), this->id_, function_code);
+      return;
+    }
+
+    this->publish_state(this->last_sent_value_);
+  }
 
  protected:
-  aa55_const::NUMBER_TYPE type_{};
-  std::string id_{};
+  float last_sent_value_{};
 };
-
 }  // namespace aa55_inverter
 }  // namespace esphome
