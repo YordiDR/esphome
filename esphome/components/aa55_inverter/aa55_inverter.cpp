@@ -50,6 +50,7 @@ void AA55Inverter::loop() {
       ESP_LOGI(LOGGING_TAG, "Inverter %x on bus %s came online.", this->slave_address_,
                this->parent_bus_->get_component_id().c_str());
       this->inverter_online_ = true;
+      this->packet_brought_inverter_online = true;
 
       // Get serial & model info
       ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->slave_address_);
@@ -185,7 +186,9 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
       ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
                sensor->time_to_update() ? "yes" : "no");
 
-      if (sensor->time_to_update()) {
+      if (sensor->time_to_update() ||
+          this->packet_brought_inverter_online) {  // Publish state if it matches sensor config or if it is the first
+                                                   // state we received after the inverter came online
         sensor->publish_state(sensor->get_newest_value());
         if (sensor->get_skip_updates() != 0) {
           sensor->reset_skipped_updates();
@@ -205,7 +208,9 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
       ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
                sensor->time_to_update() ? "yes" : "no");
 
-      if (sensor->time_to_update()) {
+      if (sensor->time_to_update() ||
+          this->packet_brought_inverter_online) {  // Publish state if it matches sensor config or if it is the first
+                                                   // state we received after the inverter came online
         sensor->publish_state(sensor->get_newest_value());
         if (sensor->get_skip_updates() != 0) {
           sensor->reset_skipped_updates();
@@ -214,6 +219,10 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
         sensor->increment_skipped_updates();
       }
     }
+  }
+
+  if (this->packet_brought_inverter_online) {
+    this->packet_brought_inverter_online = false;
   }
 }
 
