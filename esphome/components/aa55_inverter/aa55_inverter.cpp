@@ -237,6 +237,7 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
       ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+      sensor->publish_state(sensor->get_newest_value());
     }
   }
 }
