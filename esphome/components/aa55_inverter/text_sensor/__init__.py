@@ -36,15 +36,11 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_MODEL, default={CONF_ID: "model", CONF_NAME: "Model"}
-            ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}
-            ),
+            ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor),
             cv.Optional(
                 CONF_SERIAL_NUMBER,
                 default={CONF_ID: "serial_number", CONF_NAME: "Serial number"},
-            ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
-                {cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}
-            ),
+            ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor),
         }
     )
     .extend(INVERTER_CHILD_SCHEMA)
@@ -61,7 +57,10 @@ async def to_code(config):
         id = conf[CONF_ID]
         if id and id.type == text_sensor.TextSensor:
             sens = await text_sensor.new_text_sensor(conf)
-            cg.add(sens.set_skip_updates(conf[CONF_SKIP_UPDATES]))
             cg.add(sens.set_id(key))
             cg.add(sens.set_type(getattr(SensorType, key.upper())))
+
+            if CONF_SKIP_UPDATES in conf:
+                cg.add(sens.set_skip_updates(conf[CONF_SKIP_UPDATES]))
+
             cg.add(inverter.add_text_sensor(sens))
