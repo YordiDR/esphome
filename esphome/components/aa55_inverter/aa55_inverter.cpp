@@ -182,6 +182,8 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
       ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
+      ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
+               sensor->time_to_update() ? "yes" : "no");
 
       if (sensor->time_to_update()) {
         sensor->publish_state(sensor->get_newest_value());
@@ -200,6 +202,8 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
                sensor->get_payload_location(), sensor->get_payload_length());
       sensor->parse_payload(payload);
       ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
+      ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
+               sensor->time_to_update() ? "yes" : "no");
 
       if (sensor->time_to_update()) {
         sensor->publish_state(sensor->get_newest_value());
