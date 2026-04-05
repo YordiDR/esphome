@@ -35,7 +35,7 @@ class AA55Inverter : public PollingComponent {
   std::vector<AA55InverterSensor *> sensors_;
   std::vector<AA55InverterTextSensor *> text_sensors_;
   std::vector<AA55InverterBaseInput *> inputs_;
-  bool inverter_online_ = false;
+  bool inverter_online_{false};
   aa55_bus::AA55Bus *parent_bus_{nullptr};
   std::queue<aa55_const::AA55Packet> response_packets_buffer_;
   uint32_t last_packet_received_{0};
