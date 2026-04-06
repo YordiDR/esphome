@@ -46,7 +46,7 @@ CONF_FAC1_FAULT_VALUE = "fac1_fault_value"
 CONF_GFCI_FAULT_VALUE = "gfci_fault_value"
 CONF_E_TODAY = "e_today"
 CONF_NOM_VPV = "nom_vpv"
-CONF_SAFETY_COUNTRY_CODE = "safety_country_code"
+CONF_COUNTRY_CODE = "country_code"
 CONF_SKIP_UPDATES = "skip_updates"
 
 AA55InverterSensor = aa55_inverter_ns.class_(
@@ -191,6 +191,17 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_ENERGY,
+            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            cv.Optional(
+                CONF_COUNTRY_CODE,
+                default={
+                    CONF_ID: "country_code",
+                    CONF_NAME: "Country code",
+                },
+            ): sensor.sensor_schema(
+                class_=AA55InverterSensor,
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
             ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
         }
     )
