@@ -1,31 +1,44 @@
 #pragma once
-#include "esphome/components/sensor/sensor.h"
+#include "esphome/components/button/button.h"
 #include "esphome/core/component.h"
-#include "../aa55_inverter_base_sensor.h"
+#include "../aa55_inverter_base_input.h"
 #include <string>
 
 namespace esphome {
 namespace aa55_inverter {
 
-class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor, public Component {
+class AA55InverterButton : public AA55InverterBaseInput, public button::Button, public Component {
  public:
-  void parse_payload(const std::vector<uint8_t> &payload) {
-    this->newest_value_ =
-        this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
+  void dump_config() override {
+    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter button");
+    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
   }
 
-  float get_newest_value() { return this->newest_value_; }
+  void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override {
+    if (response != 6) {
+      ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",
+               this->parent_inverter_->get_slave_address(), ((uint8_t) function_code) & 0x7F);
+      return;
+    }
 
-  void dump_config() override {
-    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter text sensor");
-    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Skip Updates: %d", this->skip_updates_);
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", aa55_const::MAP_SENSOR_PAYLOAD_LOCATION.at(this->type_));
-    ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", aa55_const::MAP_SENSOR_PAYLOAD_LENGTH.at(this->type_));
+    if (this->type_ == aa55_const::INPUT_TYPE::RECONNECT_GRID &&
+        function_code == aa55_const::FUNCTION_CODE::RECONNECT_GRID_RESPONSE) {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the reconnect grid command.",
+               this->parent_inverter_->get_slave_address());
+    } else {
+      ESP_LOGD(LOGGING_TAG, "Inverter %x button %s got an incorrect function code %x as response.",
+               this->parent_inverter_->get_slave_address(), this->id_, function_code);
+      return;
+    }
   }
 
  protected:
-  float newest_value_{NAN};
+  void press_action() override {
+    ESP_LOGD(LOGGING_TAG, "Button %s was pressed", this->id_.c_str());
+    if (this->type_ == aa55_const::INPUT_TYPE::RECONNECT_GRID) {
+      this->parent_inverter_->send_execute_command(aa55_const::FUNCTION_CODE::RECONNECT_GRID);
+    }
+  }
 };
 
 }  // namespace aa55_inverter
