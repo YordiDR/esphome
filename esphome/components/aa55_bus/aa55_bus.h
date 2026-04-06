@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <cstdint>
 
 namespace esphome {
 namespace aa55_inverter {
@@ -20,11 +21,19 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void setup() override;
   void dump_config() override;
   void loop() override;
-  void register_inverter(aa55_inverter::AA55Inverter *inverter) { this->registered_inverters_.push_back(inverter); };
+  void add_inverter(aa55_inverter::AA55Inverter *inverter) { this->configured_inverters_.push_back(inverter); };
   void queue_command(aa55_const::AA55Packet command) { this->commands_to_send_.push(command); };
   uint8_t get_master_address() { return this->master_address_; };
   std::string get_component_id() { return this->id_; };
   void set_component_id(std::string id) { this->id_ = id; };
+  void add_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
+    this->registered_inverters_.push_back(inverter);
+  };
+  void remove_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
+    this->registered_inverters_.erase(
+        std::remove(this->registered_inverters_.begin(), this->registered_inverters_.end(), inverter),
+        this->registered_inverters_.end());
+  };
 
  protected:
   // Internal variables
@@ -32,8 +41,14 @@ class AA55Bus : public uart::UARTDevice, public Component {
   std::deque<uint8_t> receive_buffer_;
   std::queue<aa55_const::AA55Packet> commands_to_send_;
   std::string id_;
-  std::vector<aa55_inverter::AA55Inverter *> registered_inverters_;
-  std::uint32_t last_send_time_{millis()};
+  std::vector<aa55_inverter::AA55Inverter *> configured_inverters_;
+  std::vector<aa55_inverter::AA55Inverter *>
+      registered_inverters_;  // Subset of configured inverters that have been registered on the bus
+  std::uint32_t last_send_time_{
+      UINT32_MAX - aa55_const::COMMAND_DELAY};  // Set to max - interval to allow sending immediately on startup
+  std::uint32_t last_offline_request_send_time_{
+      UINT32_MAX -
+      aa55_const::OFFLINE_QUERY_INTERVAL};  // Set to max - interval to allow sending immediately on startup
 
   // Functions
   void send_packet(const aa55_const::AA55Packet &command);  // Function that generates the packet and sends it via UART

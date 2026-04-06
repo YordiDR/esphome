@@ -43,4 +43,4 @@ async def to_code(config):
         config[CONF_SLAVE_ADDRESS],
     )
     await cg.register_component(var, config)
-    await aa55_bus.register_aa55_inverter(var, config)
+    await aa55_bus.add_aa55_inverter(var, config)

@@ -27,6 +27,7 @@ class AA55Inverter : public PollingComponent {
   void set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; };
   void queue_response_packet(const aa55_const::AA55Packet &packet) { this->response_packets_buffer_.push(packet); };
   void send_execute_command(aa55_const::FUNCTION_CODE function_code, uint8_t payload = 0);
+  std::string get_serial_number() { return this->serial_number_; };
 
  protected:
   // Internal variables
@@ -36,7 +37,7 @@ class AA55Inverter : public PollingComponent {
   std::vector<AA55InverterTextSensor *> text_sensors_;
   std::vector<AA55InverterBaseInput *> inputs_;
   bool inverter_online_{false};
-  bool packet_brought_inverter_online{false};
+  bool received_packet_since_online_{false};
   aa55_bus::AA55Bus *parent_bus_{nullptr};
   std::queue<aa55_const::AA55Packet> response_packets_buffer_;
   uint32_t last_packet_received_{0};
@@ -47,6 +48,8 @@ class AA55Inverter : public PollingComponent {
   void parse_id_info_response(
       const std::vector<uint8_t> &payload);  // A method to parse the ID info data read from the inverter
   void parse_execute_response(aa55_const::FUNCTION_CODE function_code, uint8_t response);
+  void handle_registration_request(const std::vector<uint8_t> &payload);
+  void handle_address_confirm(const std::vector<uint8_t> &payload);
   template<typename T> std::string create_hex_string(const T &data) {
     std::string result;
     result.reserve(data.size() * 3);

@@ -27,11 +27,30 @@ void AA55Bus::loop() {
     this->process_rx();
   }
 
+  // Check if we need to send out an offline query (every 60s if a configured inverter is not yet registered)
+  if (this->configured_inverters_.size() > this->registered_inverters_.size() &&
+      millis() - this->last_offline_request_send_time_ >= aa55_const::OFFLINE_QUERY_INTERVAL) {
+    ESP_LOGD(LOGGING_TAG,
+             "Queuing offline query command because there are unregistered inverters and the offline query interval of "
+             "%dms has passed.",
+             aa55_const::OFFLINE_QUERY_INTERVAL);
+    const aa55_const::AA55Packet offline_query_command = {
+        this->master_address_, aa55_const::DEFAULT_INVERTER_ADDRESS, aa55_const::CONTROL_CODE::REGISTER,
+        aa55_const::FUNCTION_CODE::OFFLINE_QUERY, aa55_const::EMPTY_VECTOR};
+    this->queue_command(offline_query_command);
+  }
+
   // Send first queued packet if applicable, take into account 500ms delay (see AA55 doc) before last sent packet
-  if (!this->commands_to_send_.empty() && millis() > this->last_send_time_ + 500) {
+  if (!this->commands_to_send_.empty() && millis() - this->last_send_time_ >= aa55_const::COMMAND_DELAY) {
     this->send_packet(this->commands_to_send_.front());
-    this->commands_to_send_.pop();
+
     this->last_send_time_ = millis();
+    if (this->commands_to_send_.front().function_code == aa55_const::FUNCTION_CODE::OFFLINE_QUERY) {
+      this->last_offline_request_send_time_ = this->last_send_time_;
+      ;
+    }
+
+    this->commands_to_send_.pop();
     ESP_LOGV(LOGGING_TAG, "Remaining commands in queue for bus %s: %d", this->get_component_id().c_str(),
              this->commands_to_send_.size());
   }
@@ -69,7 +88,7 @@ void AA55Bus::process_rx() {
     // Clear UART buffer
     uint8_t buf[64];
     size_t avail;
-    while ((avail = this->available()) > 0 && millis() < start_time + 30) {  // Avoid blocked the thread for 30ms+
+    while ((avail = this->available()) > 0 && millis() - start_time < 30) {  // Avoid blocking the thread for 30ms+
       if (!this->read_array(buf, std::min(avail, sizeof(buf)))) {
         break;
       }
@@ -84,7 +103,7 @@ void AA55Bus::process_rx() {
   bool packet_fully_received{false};
 
   while (this->available() && this->receive_buffer_.size() < aa55_const::MAX_BUFFER_LENGTH &&
-         millis() < start_time + 30) {  // Avoid blocking the thread for 30ms+
+         millis() - start_time < 30) {  // Avoid blocking the thread for 30ms+
     // Read all available bytes in batches to reduce UART call overhead.
     const uint8_t avail = this->available();
     const size_t to_read = std::min(avail, buffer_max_size);
@@ -178,26 +197,56 @@ void AA55Bus::process_rx() {
       continue;
     }
 
-    // Figure out what inverter to send the packet to
-    uint8_t packet_source_address = this->receive_buffer_.at(2);
-    auto find_inverter_it = std::find_if(this->registered_inverters_.begin(), this->registered_inverters_.end(),
-                                         [packet_source_address](aa55_inverter::AA55Inverter *inverter) {
-                                           return inverter->get_slave_address() == packet_source_address;
-                                         });
-    if (find_inverter_it == this->registered_inverters_.end()) {
-      ESP_LOGD(LOGGING_TAG, "Received packet from an unregistered inverter (%x). Discarding...", packet_source_address);
-      this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
-      packet_header_found = false;
-      packet_size = UINT8_MAX;
-      continue;
-    }
+    std::vector<aa55_inverter::AA55Inverter *>::iterator find_inverter_it;
+    if (this->receive_buffer_.at(4) == (uint8_t) aa55_const::CONTROL_CODE::REGISTER &&
+        this->receive_buffer_.at(5) == (uint8_t) aa55_const::FUNCTION_CODE::REG_REQUEST) {
+      // Pass register request to correct inverter object
+      std::string discovered_serial_number(this->receive_buffer_.begin() + 7,
+                                           this->receive_buffer_.begin() + packet_size - 2);
 
-    ESP_LOGD(LOGGING_TAG, "Received packet from a registered inverter (%x).", packet_source_address);
+      ESP_LOGD(LOGGING_TAG,
+               "Received register request from inverter with serial number %s. Looking for configured inverter...",
+               discovered_serial_number.c_str());
+
+      find_inverter_it = std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
+                                      [discovered_serial_number](aa55_inverter::AA55Inverter *inverter) {
+                                        return inverter->get_serial_number() == discovered_serial_number;
+                                      });
+
+      if (find_inverter_it == this->configured_inverters_.end()) {
+        ESP_LOGW(LOGGING_TAG, "Could not find a configured inverter with serial number %s. Discarding...",
+                 discovered_serial_number.c_str());
+        this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
+        packet_header_found = false;
+        packet_size = UINT8_MAX;
+        continue;
+      }
+
+      ESP_LOGD(LOGGING_TAG, "Received register request from a configured inverter with serial number %s.",
+               discovered_serial_number.c_str());
+    } else {
+      // Send inverter info responses to the applicable inverter object
+      uint8_t packet_source_address = this->receive_buffer_.at(2);
+      find_inverter_it = std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
+                                      [packet_source_address](aa55_inverter::AA55Inverter *inverter) {
+                                        return inverter->get_slave_address() == packet_source_address;
+                                      });
+      if (find_inverter_it == this->configured_inverters_.end()) {
+        ESP_LOGD(LOGGING_TAG, "Received packet from an unregistered inverter (%x). Discarding...",
+                 packet_source_address);
+        this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
+        packet_header_found = false;
+        packet_size = UINT8_MAX;
+        continue;
+      }
+
+      ESP_LOGD(LOGGING_TAG, "Received packet from a registered inverter (%x).", packet_source_address);
+    }
 
     // Pass packet to inverter object
     const std::vector<uint8_t> received_payload(this->receive_buffer_.begin() + 7,
                                                 this->receive_buffer_.begin() + packet_size - 2);
-    const aa55_const::AA55Packet response_packet = {packet_source_address, this->receive_buffer_.at(3),
+    const aa55_const::AA55Packet response_packet = {this->receive_buffer_.at(2), this->receive_buffer_.at(3),
                                                     static_cast<aa55_const::CONTROL_CODE>(this->receive_buffer_.at(4)),
                                                     static_cast<aa55_const::FUNCTION_CODE>(this->receive_buffer_.at(5)),
                                                     received_payload};

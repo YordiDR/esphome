@@ -6,6 +6,11 @@ namespace aa55_const {
 
 static const uint16_t MAX_BUFFER_LENGTH = 512;  // Max characters for serial buffer, 150 bytes is the length of the
                                                 // response to the longest command (read running info list)
+static const uint32_t OFFLINE_QUERY_INTERVAL =
+    60000;  // Time interval in ms for sending offline query commands for unregistered inverters
+static const uint8_t DEFAULT_INVERTER_ADDRESS = 0x7F;
+static const uint16_t COMMAND_DELAY = 500;  // Min time between AA55 commands is 500 ms according to AA55 documentation
+
 static const std::vector<uint8_t> HEADERS = {0xAA, 0x55};
 static const std::vector<uint8_t> EMPTY_VECTOR = {};
 

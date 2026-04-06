@@ -36,9 +36,9 @@ def aa55_inverter_schema():
     return cv.Schema(schema)
 
 
-async def register_aa55_inverter(var, config):
+async def add_aa55_inverter(var, config):
     aa55_bus = await cg.get_variable(config[CONF_AA55_BUS_ID])
-    cg.add(aa55_bus.register_inverter(var))
+    cg.add(aa55_bus.add_inverter(var))
     cg.add(var.set_parent_bus(aa55_bus))
 
 

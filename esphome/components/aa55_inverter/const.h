@@ -6,8 +6,6 @@
 namespace esphome {
 namespace aa55_const {
 
-static const uint8_t DEFAULT_ADDRESS = 0x7F;
-
 const std::vector<std::string> WORK_MODE_LIST = {"Waiting", "Normal", "Fault"};
 const std::vector<std::string> ERROR_CODE_LIST = {"GFCI Device Failure",
                                                   "AC HCT Failure",
