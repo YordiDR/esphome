@@ -39,7 +39,7 @@ void AA55Bus::loop() {
         aa55_const::FUNCTION_CODE::OFFLINE_QUERY, aa55_const::EMPTY_VECTOR};
 
     // Check if queue already contains an offline query command to avoid flooding
-    std::vector<aa55_const::AA55Packet>::iterator *find_packet_it = std::find_if(
+    std::deque<aa55_const::AA55Packet>::iterator find_packet_it = std::find_if(
         this->commands_to_send_.begin(), this->commands_to_send_.end(), [](const aa55_const::AA55Packet &packet) {
           return packet.function_code == aa55_const::FUNCTION_CODE::OFFLINE_QUERY;
         });
