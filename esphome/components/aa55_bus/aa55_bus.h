@@ -4,8 +4,8 @@
 #include "const.h"
 #include <string>
 #include <vector>
-#include <queue>
 #include <cstdint>
+#include <deque>
 
 namespace esphome {
 namespace aa55_inverter {
@@ -22,7 +22,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void dump_config() override;
   void loop() override;
   void add_inverter(aa55_inverter::AA55Inverter *inverter) { this->configured_inverters_.push_back(inverter); };
-  void queue_command(aa55_const::AA55Packet command) { this->commands_to_send_.push(command); };
+  void queue_command(aa55_const::AA55Packet command) { this->commands_to_send_.push_back(command); };
   uint8_t get_master_address() { return this->master_address_; };
   std::string get_component_id() { return this->id_; };
   void set_component_id(std::string id) { this->id_ = id; };
@@ -39,7 +39,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   // Internal variables
   uint8_t master_address_;
   std::deque<uint8_t> receive_buffer_;
-  std::queue<aa55_const::AA55Packet> commands_to_send_;
+  std::deque<aa55_const::AA55Packet> commands_to_send_;
   std::string id_;
   std::vector<aa55_inverter::AA55Inverter *> configured_inverters_;
   std::vector<aa55_inverter::AA55Inverter *>
