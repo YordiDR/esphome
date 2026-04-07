@@ -37,7 +37,15 @@ void AA55Bus::loop() {
     const aa55_const::AA55Packet offline_query_command = {
         this->master_address_, aa55_const::DEFAULT_INVERTER_ADDRESS, aa55_const::CONTROL_CODE::REGISTER,
         aa55_const::FUNCTION_CODE::OFFLINE_QUERY, aa55_const::EMPTY_VECTOR};
-    this->queue_command(offline_query_command);
+
+    // Check if queue already contains an offline query command to avoid flooding
+    std::vector<aa55_const::AA55Packet>::iterator *find_packet_it = std::find_if(
+        this->commands_to_send_.begin(), this->commands_to_send_.end(), [](const aa55_const::AA55Packet &packet) {
+          return packet.function_code == aa55_const::FUNCTION_CODE::OFFLINE_QUERY;
+        });
+    if (find_packet_it == this->commands_to_send_.end()) {
+      this->queue_command(offline_query_command);
+    }
   }
 
   // Send first queued packet if applicable, take into account 500ms delay (see AA55 doc) before last sent packet
