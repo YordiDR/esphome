@@ -57,7 +57,7 @@ void AA55Bus::loop() {
       this->last_offline_request_send_time_ = this->last_send_time_;
     }
 
-    this->commands_to_send_.pop();
+    this->commands_to_send_.pop_front();
     ESP_LOGV(LOGGING_TAG, "Remaining commands in queue for bus %s: %d", this->get_component_id().c_str(),
              this->commands_to_send_.size());
   }
