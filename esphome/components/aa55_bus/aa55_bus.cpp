@@ -47,7 +47,6 @@ void AA55Bus::loop() {
     this->last_send_time_ = millis();
     if (this->commands_to_send_.front().function_code == aa55_const::FUNCTION_CODE::OFFLINE_QUERY) {
       this->last_offline_request_send_time_ = this->last_send_time_;
-      ;
     }
 
     this->commands_to_send_.pop();
