@@ -56,11 +56,10 @@ async def to_code(config):
             continue
         id = conf[CONF_ID]
         if id and id.type == text_sensor.TextSensor:
-            sens = await text_sensor.new_text_sensor(conf)
-            cg.add(sens.set_id(key))
-            cg.add(sens.set_type(getattr(SensorType, key.upper())))
-
-            if CONF_SKIP_UPDATES in conf:
-                cg.add(sens.set_skip_updates(conf[CONF_SKIP_UPDATES]))
-
-            cg.add(inverter.add_text_sensor(sens))
+            skip_updates = conf.get(CONF_SKIP_UPDATES, 0)
+            var = cg.new_Pvariable(
+                id, key, getattr(SensorType, key.upper()), skip_updates
+            )
+            await cg.register_component(var, conf)
+            await text_sensor.register_text_sensor(var, conf)
+            cg.add(inverter.add_text_sensor(var))

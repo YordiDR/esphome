@@ -1,15 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import number
 import esphome.config_validation as cv
-from esphome.const import (
-    CONF_ID,
-    CONF_MAX_VALUE,
-    CONF_MIN_VALUE,
-    CONF_NAME,
-    CONF_STEP,
-    DEVICE_CLASS_POWER_FACTOR,
-    UNIT_PERCENT,
-)
+from esphome.const import CONF_ID, CONF_NAME, DEVICE_CLASS_POWER_FACTOR, UNIT_PERCENT
 
 from .. import CONF_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_const_ns, aa55_inverter_ns
 
@@ -49,16 +41,16 @@ async def to_code(config):
             continue
         id = conf[CONF_ID]
         if id and id.type == number.Number:
+            var = cg.new_Pvariable(id, key, getattr(InputType, key.upper()), inverter)
+            await cg.register_component(var, conf)
+
             if key == CONF_ADJUST_POWER:
-                num = await number.new_number(conf, min_value=0, max_value=100, step=1)
-            else:
-                num = await number.new_number(
+                await number.register_number(
+                    var,
                     conf,
-                    min_value=conf[CONF_MIN_VALUE],
-                    max_value=conf[CONF_MAX_VALUE],
-                    step=conf[CONF_STEP],
+                    min_value=0,
+                    max_value=100,
+                    step=1,
                 )
-            cg.add(num.set_id(key))
-            cg.add(num.set_type(getattr(InputType, key.upper())))
-            cg.add(num.set_parent_inverter(inverter))
-            cg.add(inverter.add_input(num))
+
+            cg.add(inverter.add_input(var))

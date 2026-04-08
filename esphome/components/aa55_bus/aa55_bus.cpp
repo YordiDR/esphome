@@ -11,7 +11,10 @@
 namespace esphome {
 namespace aa55_bus {
 
-AA55Bus::AA55Bus(uint8_t master_address) { master_address_ = master_address; }
+AA55Bus::AA55Bus(std::string id, uint8_t master_address) : uart::UARTDevice(), Component() {
+  this->id_ = id;
+  this->master_address_ = master_address;
+}
 
 void AA55Bus::setup() {}
 
@@ -58,7 +61,7 @@ void AA55Bus::loop() {
     }
 
     this->commands_to_send_.pop_front();
-    ESP_LOGV(LOGGING_TAG, "Remaining commands in queue for bus %s: %d", this->get_component_id().c_str(),
+    ESP_LOGV(LOGGING_TAG, "Remaining commands in queue for bus %s: %d", this->id_.c_str(),
              this->commands_to_send_.size());
   }
 }
@@ -86,8 +89,7 @@ void AA55Bus::process_rx() {
   // Drop all RX buffer contents on buffer overload
   if (this->receive_buffer_.size() >= aa55_const::MAX_BUFFER_LENGTH) {
     ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", this->create_hex_string(this->receive_buffer_));
-    ESP_LOGW(LOGGING_TAG, "UART RX buffer for bus %s has filled up. Clearing buffer...",
-             this->get_component_id().c_str());
+    ESP_LOGW(LOGGING_TAG, "UART RX buffer for bus %s has filled up. Clearing buffer...", this->id_.c_str());
 
     // Clear deque buffer used for processing
     this->receive_buffer_.clear();

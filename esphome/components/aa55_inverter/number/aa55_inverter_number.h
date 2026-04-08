@@ -9,6 +9,9 @@ namespace aa55_inverter {
 
 class AA55InverterNumber : public AA55InverterBaseInput, public number::Number, public Component {
  public:
+  AA55InverterNumber(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter)
+      : AA55InverterBaseInput(id, type, parent_inverter), number::Number(), Component(){};
+
   void setup() override {
     // Initialize as unknown
     this->publish_state(NAN);

@@ -37,8 +37,7 @@ async def to_code(config):
             continue
         id = conf[CONF_ID]
         if id and id.type == switch.Switch:
-            sw = await switch.new_switch(conf)
-            cg.add(sw.set_id(key))
-            cg.add(sw.set_type(getattr(InputType, key.upper())))
-            cg.add(sw.set_parent_inverter(inverter))
-            cg.add(inverter.add_input(sw))
+            var = cg.new_Pvariable(id, key, getattr(InputType, key.upper()), inverter)
+            await cg.register_component(var, conf)
+            await switch.register_switch(var, conf)
+            cg.add(inverter.add_input(var))

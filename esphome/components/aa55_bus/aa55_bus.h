@@ -17,7 +17,7 @@ static const char *LOGGING_TAG = "aa55_bus";
 
 class AA55Bus : public uart::UARTDevice, public Component {
  public:
-  AA55Bus(uint8_t master_address);
+  AA55Bus(std::string id, uint8_t master_address);
   void setup() override;
   void dump_config() override;
   void loop() override;
@@ -25,7 +25,6 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void queue_command(aa55_const::AA55Packet command) { this->commands_to_send_.push_back(command); };
   uint8_t get_master_address() { return this->master_address_; };
   std::string get_component_id() { return this->id_; };
-  void set_component_id(std::string id) { this->id_ = id; };
   void add_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
     this->registered_inverters_.push_back(inverter);
   };

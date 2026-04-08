@@ -9,9 +9,9 @@
 
 namespace esphome {
 namespace aa55_inverter {
-AA55Inverter::AA55Inverter(std::string serial_number, uint8_t slave_address) {
-  serial_number_ = serial_number;
-  slave_address_ = slave_address;
+AA55Inverter::AA55Inverter(std::string serial_number, uint8_t slave_address) : PollingComponent() {
+  this->serial_number_ = serial_number;
+  this->slave_address_ = slave_address;
 }
 
 void AA55Inverter::setup() {
@@ -178,11 +178,8 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
 
   // Save received values in the sensor attributes + publish state if applicable
   for (AA55InverterSensor *sensor : this->sensors_) {
-    if (aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
-      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-               sensor->get_payload_location(), sensor->get_payload_length());
+    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       sensor->parse_payload(payload);
-      ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", sensor->get_id().c_str(), sensor->get_newest_value());
       ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
                sensor->time_to_update() ? "yes" : "no");
 
@@ -200,11 +197,8 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
   }
 
   for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
-      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-               sensor->get_payload_location(), sensor->get_payload_length());
+    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       sensor->parse_payload(payload);
-      ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
       ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
                sensor->time_to_update() ? "yes" : "no");
 
@@ -241,11 +235,8 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
 
   // Save received values in the sensor attributes
   for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(sensor->get_type()) == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
-      ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", sensor->get_id().c_str(),
-               sensor->get_payload_location(), sensor->get_payload_length());
+    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
       sensor->parse_payload(payload);
-      ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", sensor->get_id().c_str(), sensor->get_newest_value().c_str());
       sensor->publish_state(sensor->get_newest_value());
     }
   }
@@ -253,9 +244,9 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
 
 void AA55Inverter::parse_execute_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) {
   for (AA55InverterBaseInput *input : this->inputs_) {
-    if (input->get_type() == aa55_const::MAP_RESPONSE_INPUT.at(function_code)) {
+    if (input->get_response_function_code() == function_code) {
       ESP_LOGV(LOGGING_TAG, "Passing execute command response %x (payload %d) from inverter %x to input %s",
-               (uint8_t) function_code, response, this->get_slave_address(), input->get_id().c_str());
+               (uint8_t) function_code, response, this->slave_address_, input->get_id().c_str());
       input->handle_response(function_code, response);
     }
   }

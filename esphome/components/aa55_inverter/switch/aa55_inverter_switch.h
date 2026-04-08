@@ -9,6 +9,9 @@ namespace aa55_inverter {
 
 class AA55InverterSwitch : public AA55InverterBaseInput, public switch_::Switch, public Component {
  public:
+  AA55InverterSwitch(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter)
+      : AA55InverterBaseInput(id, type, parent_inverter), switch_::Switch(), Component(){};
+
   void setup() override {
     // Initialize as off
     this->publish_state(false);

@@ -36,7 +36,6 @@ async def to_code(config):
             continue
         id = conf[CONF_ID]
         if id and id.type == button.Button:
-            btn = await button.new_button(conf)
-            cg.add(btn.set_id(key))
-            cg.add(btn.set_type(getattr(InputType, key.upper())))
-            cg.add(inverter.add_input(btn))
+            var = cg.new_Pvariable(id, key, getattr(InputType, key.upper()), inverter)
+            await cg.register_component(var, conf)
+            cg.add(inverter.add_input(var))
