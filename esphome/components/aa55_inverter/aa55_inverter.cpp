@@ -234,6 +234,13 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
   }
 
   // Save received values in the sensor attributes
+  for (AA55InverterSensor *sensor : this->sensors_) {
+    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
+      sensor->parse_payload(payload);
+      sensor->publish_state(sensor->get_newest_value());
+    }
+  }
+
   for (AA55InverterTextSensor *sensor : this->text_sensors_) {
     if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
       sensor->parse_payload(payload);
