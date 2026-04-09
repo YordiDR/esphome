@@ -23,8 +23,8 @@ class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor,
   float get_newest_value() { return this->newest_value_; }
 
   void dump_config() override {
-    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter text sensor");
-    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
+    ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter sensor");
+    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_.c_str());
     ESP_LOGCONFIG(LOGGING_TAG, "  Skip Updates: %d", this->skip_updates_);
     ESP_LOGCONFIG(LOGGING_TAG, "  Payload location: %d", this->payload_location_);
     ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", this->payload_length_);

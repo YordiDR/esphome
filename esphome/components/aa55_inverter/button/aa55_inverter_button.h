@@ -13,7 +13,7 @@ class AA55InverterButton : public AA55InverterBaseInput, public button::Button, 
       : AA55InverterBaseInput(id, type, parent_inverter), button::Button(), Component(){};
   void dump_config() override {
     ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter button");
-    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_);
+    ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_.c_str());
   }
 
   void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override {
