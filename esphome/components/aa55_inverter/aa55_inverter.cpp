@@ -95,7 +95,7 @@ void AA55Inverter::loop() {
     this->response_packets_buffer_.pop();
   }
 
-  if (this->inverter_online_ && millis() - this->last_packet_received_ >= 30000) {
+  if (this->inverter_online_ && millis() - this->last_packet_received_ >= aa55_const::INVERTER_OFFLINE_TIMEOUT) {
     ESP_LOGI(LOGGING_TAG, "Marking inverter %x on bus %s offline due to no response.", this->slave_address_,
              this->parent_bus_->get_component_id().c_str());
     this->inverter_online_ = false;

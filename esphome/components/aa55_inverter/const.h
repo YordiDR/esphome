@@ -6,6 +6,9 @@
 namespace esphome {
 namespace aa55_const {
 
+static const uint32_t INVERTER_OFFLINE_TIMEOUT =
+    30000;  // Time in ms after which an inverter is considered offline if no packets have been received
+
 const std::vector<std::string> WORK_MODE_LIST = {"Waiting", "Normal", "Fault"};
 const std::vector<std::string> ERROR_CODE_LIST = {"GFCI Device Failure",
                                                   "AC HCT Failure",
