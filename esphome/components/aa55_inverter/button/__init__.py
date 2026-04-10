@@ -38,4 +38,5 @@ async def to_code(config):
         if id and id.type == button.Button:
             var = cg.new_Pvariable(id, key, getattr(InputType, key.upper()), inverter)
             await cg.register_component(var, conf)
+            await button.register_button(var, conf)
             cg.add(inverter.add_input(var))
