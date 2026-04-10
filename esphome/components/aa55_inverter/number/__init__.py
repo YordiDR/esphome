@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import number
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NAME, DEVICE_CLASS_POWER_FACTOR, UNIT_PERCENT
+from esphome.const import CONF_ID, DEVICE_CLASS_POWER_FACTOR, UNIT_PERCENT
 
 from .. import (
     CONF_INVERTER_ID,
@@ -28,7 +28,6 @@ CONFIG_SCHEMA = (
         {
             cv.Optional(
                 CONF_ADJUST_POWER,
-                default={CONF_ID: "adjust_power", CONF_NAME: "Adjust power"},
             ): number.number_schema(
                 class_=AA55InverterNumber,
                 device_class=DEVICE_CLASS_POWER_FACTOR,

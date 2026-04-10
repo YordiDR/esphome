@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import text_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NAME
+from esphome.const import CONF_ID
 
 from .. import (
     CONF_INVERTER_ID,
@@ -31,7 +31,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.Optional(
-                CONF_WORK_MODE, default={CONF_ID: "work_mode", CONF_NAME: "Work mode"}
+                CONF_WORK_MODE,
             ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
                 {
                     cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
@@ -41,7 +41,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_ERROR_CODES,
-                default={CONF_ID: "error_codes", CONF_NAME: "Error codes"},
             ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
                 {
                     cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
@@ -50,7 +49,7 @@ CONFIG_SCHEMA = (
                 }
             ),
             cv.Optional(
-                CONF_MODEL, default={CONF_ID: "model", CONF_NAME: "Model"}
+                CONF_MODEL,
             ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
                 {
                     cv.Optional(CONF_OFFLINE_HOLD, default=True): cv.boolean,
@@ -59,7 +58,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_SERIAL_NUMBER,
-                default={CONF_ID: "serial_number", CONF_NAME: "Serial number"},
             ): text_sensor.text_sensor_schema(class_=AA55InverterTextSensor).extend(
                 {
                     cv.Optional(CONF_OFFLINE_HOLD, default=True): cv.boolean,

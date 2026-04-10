@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import switch
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NAME
+from esphome.const import CONF_ID
 
 from .. import (
     CONF_INVERTER_ID,
@@ -35,7 +35,6 @@ CONFIG_SCHEMA = (
         {
             cv.Optional(
                 CONF_START_STOP,
-                default={CONF_ID: "start_stop", CONF_NAME: "Start-Stop"},
             ): switch.switch_schema(class_=AA55InverterSwitch).extend(
                 {
                     cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,

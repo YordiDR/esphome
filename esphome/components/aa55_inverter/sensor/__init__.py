@@ -3,7 +3,6 @@ from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    CONF_NAME,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_DURATION,
     DEVICE_CLASS_ENERGY,
@@ -66,7 +65,6 @@ CONFIG_SCHEMA = (
         {
             cv.Optional(
                 CONF_VPV1,
-                default={CONF_ID: "vpv1", CONF_NAME: "PV1 Voltage (Vpv1)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_VOLT,
@@ -82,7 +80,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_VPV2,
-                default={CONF_ID: "vpv2", CONF_NAME: "PV2 Voltage (Vpv2)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_VOLT,
@@ -98,7 +95,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_IPV1,
-                default={CONF_ID: "ipv1", CONF_NAME: "PV1 Current (Ipv1)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_AMPERE,
@@ -114,7 +110,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_IPV2,
-                default={CONF_ID: "ipv2", CONF_NAME: "PV2 Current (Ipv2)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_AMPERE,
@@ -130,7 +125,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_VAC1,
-                default={CONF_ID: "vac1", CONF_NAME: "Phase 1 Voltage (Vac1)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_VOLT,
@@ -146,7 +140,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_IAC1,
-                default={CONF_ID: "iac1", CONF_NAME: "Phase 1 Current (Iac1)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_AMPERE,
@@ -162,7 +155,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_FAC1,
-                default={CONF_ID: "fac1", CONF_NAME: "Phase 1 Frequency (Fac1)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_HERTZ,
@@ -177,7 +169,7 @@ CONFIG_SCHEMA = (
                 }
             ),
             cv.Optional(
-                CONF_PAC, default={CONF_ID: "pac", CONF_NAME: "AC Power (Pac)"}
+                CONF_PAC,
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_WATT,
@@ -193,7 +185,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_TEMPERATURE,
-                default={CONF_ID: "temperature", CONF_NAME: "Temperature"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_CELSIUS,
@@ -209,10 +200,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_E_TOTAL,
-                default={
-                    CONF_ID: "e_total",
-                    CONF_NAME: "Total energy generated (E-total)",
-                },
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_KILOWATT_HOURS,
@@ -228,7 +215,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_H_TOTAL,
-                default={CONF_ID: "h_total", CONF_NAME: "Total runtime (H-total)"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_HOUR,
@@ -244,7 +230,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_GFCI_FAULT_VALUE,
-                default={CONF_ID: "gfci_fault_value", CONF_NAME: "GFCI fault value"},
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_MILLIAMP,
@@ -260,10 +245,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_E_TODAY,
-                default={
-                    CONF_ID: "e_today",
-                    CONF_NAME: "Energy generated today (E-today)",
-                },
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 unit_of_measurement=UNIT_KILOWATT_HOURS,
@@ -279,10 +260,6 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(
                 CONF_COUNTRY_CODE,
-                default={
-                    CONF_ID: "country_code",
-                    CONF_NAME: "Country code",
-                },
             ): sensor.sensor_schema(
                 class_=AA55InverterSensor,
                 accuracy_decimals=0,

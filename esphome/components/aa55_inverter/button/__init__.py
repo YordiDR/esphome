@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import button
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NAME
+from esphome.const import CONF_ID
 
 from .. import CONF_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_const_ns, aa55_inverter_ns
 
@@ -19,7 +19,6 @@ CONFIG_SCHEMA = (
         {
             cv.Optional(
                 CONF_RECONNECT_GRID,
-                default={CONF_ID: "reconnect_grid", CONF_NAME: "Reconnect Grid"},
             ): button.button_schema(class_=AA55InverterButton)
         }
     )
