@@ -1,8 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "sensor/aa55_inverter_sensor.h"
-#include "text_sensor/aa55_inverter_text_sensor.h"
+#include "aa55_inverter_base_sensor.h"
 #include "aa55_inverter_base_input.h"
 #include "../aa55_bus/aa55_bus.h"
 #include "const.h"
@@ -20,8 +19,7 @@ class AA55Inverter : public PollingComponent {
   void dump_config() override;
   void loop() override;
   void update() override;
-  void add_sensor(AA55InverterSensor *sensor);
-  void add_text_sensor(AA55InverterTextSensor *sensor);
+  void add_sensor(AA55InverterBaseSensor *sensor);
   void add_input(AA55InverterBaseInput *input);
   uint8_t get_slave_address() { return this->slave_address_; };
   void set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; };
@@ -33,8 +31,7 @@ class AA55Inverter : public PollingComponent {
   // Internal variables
   std::string serial_number_;
   uint8_t slave_address_;
-  std::vector<AA55InverterSensor *> sensors_;
-  std::vector<AA55InverterTextSensor *> text_sensors_;
+  std::vector<AA55InverterBaseSensor *> sensors_;
   std::vector<AA55InverterBaseInput *> inputs_;
   bool inverter_online_{false};
   bool received_packet_since_online_{false};

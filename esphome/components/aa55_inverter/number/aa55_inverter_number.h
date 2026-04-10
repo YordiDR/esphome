@@ -9,8 +9,12 @@ namespace aa55_inverter {
 
 class AA55InverterNumber : public AA55InverterBaseInput, public number::Number, public Component {
  public:
-  AA55InverterNumber(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter)
-      : AA55InverterBaseInput(id, type, parent_inverter), number::Number(), Component(){};
+  AA55InverterNumber(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter, bool offline_hold,
+                     float offline_value, float online_initial_value)
+      : AA55InverterBaseInput(id, type, parent_inverter, offline_hold), number::Number(), Component() {
+    this->offline_value_ = offline_value;
+    this->online_initial_value_ = online_initial_value;
+  }
 
   void setup() override {
     // Initialize as unknown
@@ -51,8 +55,22 @@ class AA55InverterNumber : public AA55InverterBaseInput, public number::Number, 
     this->publish_state(this->last_sent_value_);
   }
 
+  void handle_inverter_offline() override {
+    if (!this->offline_hold_) {
+      ESP_LOGD(LOGGING_TAG, "Publishing offline value %f for number %s because the inverter stopped responding.",
+               this->offline_value_, this->id_.c_str());
+      this->publish_state(this->offline_value_);
+    }
+  }
+
+  void handle_inverter_online() override {
+    ESP_LOGD(LOGGING_TAG, "Publishing online initial value %f for number %s because the inverter came online.",
+             this->online_initial_value_, this->id_.c_str());
+    this->publish_state(this->online_initial_value_);
+  }
+
  protected:
-  float last_sent_value_{};
+  float last_sent_value_{}, offline_value_{}, online_initial_value_{};
 };
 }  // namespace aa55_inverter
 }  // namespace esphome

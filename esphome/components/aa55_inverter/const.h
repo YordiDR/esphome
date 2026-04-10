@@ -68,6 +68,7 @@ enum class SENSOR_TYPE : uint8_t {
 };
 enum class INPUT_TYPE : uint8_t { START_STOP, RECONNECT_GRID, ADJUST_POWER };
 enum class ENCODING_TYPE : uint8_t { INTEGER, ASCII };
+enum class ON_OFF : uint8_t { OFF = 0, ON = 1 };
 
 const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LOCATION = {
     // Query running info sensors

@@ -10,7 +10,7 @@ namespace aa55_inverter {
 class AA55InverterButton : public AA55InverterBaseInput, public button::Button, public Component {
  public:
   AA55InverterButton(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter)
-      : AA55InverterBaseInput(id, type, parent_inverter), button::Button(), Component(){};
+      : AA55InverterBaseInput(id, type, parent_inverter, false), button::Button(), Component(){};
   void dump_config() override {
     ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Inverter button");
     ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_.c_str());
@@ -32,6 +32,14 @@ class AA55InverterButton : public AA55InverterBaseInput, public button::Button, 
                this->parent_inverter_->get_slave_address(), this->id_, function_code);
       return;
     }
+  }
+
+  void handle_inverter_offline() override {
+    ESP_LOGD(LOGGING_TAG, "Nothing to change for button %s when inverter goes offline.", this->id_.c_str());
+  }
+
+  void handle_inverter_online() override {
+    ESP_LOGD(LOGGING_TAG, "Nothing to change for button %s when inverter comes online.", this->id_.c_str());
   }
 
  protected:

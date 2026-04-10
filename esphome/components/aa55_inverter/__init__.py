@@ -9,6 +9,9 @@ MULTI_CONF = True
 CONF_INVERTER_ID = "aa55_inverter_id"
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_SLAVE_ADDRESS = "slave_address"
+CONF_OFFLINE_HOLD = "offline_hold"
+CONF_OFFLINE_VALUE = "offline_value"
+CONF_ONLINE_INTIAL_VALUE = "online_initial_value"
 
 aa55_inverter_ns = cg.esphome_ns.namespace("aa55_inverter")
 aa55_bus_ns = cg.esphome_ns.namespace("aa55_bus")
@@ -18,9 +21,7 @@ AA55Inverter = aa55_inverter_ns.class_(
 )
 
 INVERTER_CHILD_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_INVERTER_ID): cv.use_id(AA55Inverter),
-    }
+    {cv.GenerateID(CONF_INVERTER_ID): cv.use_id(AA55Inverter)}
 )
 
 CONFIG_SCHEMA = (

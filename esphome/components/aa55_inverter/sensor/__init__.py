@@ -23,7 +23,14 @@ from esphome.const import (
     UNIT_WATT,
 )
 
-from .. import CONF_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_const_ns, aa55_inverter_ns
+from .. import (
+    CONF_INVERTER_ID,
+    CONF_OFFLINE_HOLD,
+    CONF_OFFLINE_VALUE,
+    INVERTER_CHILD_SCHEMA,
+    aa55_const_ns,
+    aa55_inverter_ns,
+)
 
 DEPENDENCIES = ["aa55_inverter"]
 
@@ -66,7 +73,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_VPV2,
                 default={CONF_ID: "vpv2", CONF_NAME: "PV2 Voltage (Vpv2)"},
@@ -76,7 +89,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_IPV1,
                 default={CONF_ID: "ipv1", CONF_NAME: "PV1 Current (Ipv1)"},
@@ -86,7 +105,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_CURRENT,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_IPV2,
                 default={CONF_ID: "ipv2", CONF_NAME: "PV2 Current (Ipv2)"},
@@ -96,7 +121,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_CURRENT,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_VAC1,
                 default={CONF_ID: "vac1", CONF_NAME: "Phase 1 Voltage (Vac1)"},
@@ -106,7 +137,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_IAC1,
                 default={CONF_ID: "iac1", CONF_NAME: "Phase 1 Current (Iac1)"},
@@ -116,7 +153,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_CURRENT,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_FAC1,
                 default={CONF_ID: "fac1", CONF_NAME: "Phase 1 Frequency (Fac1)"},
@@ -126,7 +169,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=2,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_FREQUENCY,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_PAC, default={CONF_ID: "pac", CONF_NAME: "AC Power (Pac)"}
             ): sensor.sensor_schema(
@@ -135,7 +184,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_POWER,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=0): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_TEMPERATURE,
                 default={CONF_ID: "temperature", CONF_NAME: "Temperature"},
@@ -145,7 +200,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_TEMPERATURE,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_E_TOTAL,
                 default={
@@ -158,7 +219,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_TOTAL_INCREASING,
                 device_class=DEVICE_CLASS_ENERGY,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=True): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_H_TOTAL,
                 default={CONF_ID: "h_total", CONF_NAME: "Total runtime (H-total)"},
@@ -168,7 +235,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_TOTAL_INCREASING,
                 device_class=DEVICE_CLASS_DURATION,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=True): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_GFCI_FAULT_VALUE,
                 default={CONF_ID: "gfci_fault_value", CONF_NAME: "GFCI fault value"},
@@ -178,7 +251,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_CURRENT,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=True): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_E_TODAY,
                 default={
@@ -191,7 +270,13 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_ENERGY,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
             cv.Optional(
                 CONF_COUNTRY_CODE,
                 default={
@@ -202,7 +287,13 @@ CONFIG_SCHEMA = (
                 class_=AA55InverterSensor,
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
-            ).extend({cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int}),
+            ).extend(
+                {
+                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
+                    cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
+                    cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
+                }
+            ),
         }
     )
     .extend(INVERTER_CHILD_SCHEMA)
@@ -223,7 +314,12 @@ async def to_code(config):
                 skip_updates = conf[CONF_SKIP_UPDATES]
 
             var = cg.new_Pvariable(
-                id, key, getattr(SensorType, key.upper()), skip_updates
+                id,
+                key,
+                getattr(SensorType, key.upper()),
+                skip_updates,
+                conf.get(CONF_OFFLINE_HOLD, False),
+                conf.get(CONF_OFFLINE_VALUE, float("nan")),
             )
             await cg.register_component(var, conf)
             await sensor.register_sensor(var, conf)

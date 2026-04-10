@@ -16,13 +16,6 @@ AA55Inverter::AA55Inverter(std::string serial_number, uint8_t slave_address) : P
 
 void AA55Inverter::setup() {
   ESP_LOGD(LOGGING_TAG, "Invalidating all sensors as part of startup...");
-  // Mark all sensors as unavailable
-  for (AA55InverterSensor *sensor : this->sensors_) {
-    sensor->publish_state(NAN);
-  }
-  for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    sensor->publish_state("");
-  }
 
   // Send deregister command to inverter at ESP startup so we can register it again
   ESP_LOGD(LOGGING_TAG, "Sending remove register command for inverter %x", this->slave_address_);
@@ -103,41 +96,12 @@ void AA55Inverter::loop() {
     this->parent_bus_->remove_registered_inverter(this);
 
     // Override sensor & input values to match offline state as best as possible
-    for (AA55InverterSensor *sensor : this->sensors_) {
-      switch (sensor->get_type()) {
-        case aa55_const::SENSOR_TYPE::VPV1:
-        case aa55_const::SENSOR_TYPE::IPV1:
-        case aa55_const::SENSOR_TYPE::VPV2:
-        case aa55_const::SENSOR_TYPE::IPV2:
-        case aa55_const::SENSOR_TYPE::VAC1:
-        case aa55_const::SENSOR_TYPE::IAC1:
-        case aa55_const::SENSOR_TYPE::FAC1:
-        case aa55_const::SENSOR_TYPE::TEMPERATURE:
-          sensor->publish_state(NAN);
-          break;
-        case aa55_const::SENSOR_TYPE::PAC:
-          sensor->publish_state(0);
-      }
-    }
-
-    for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-      switch (sensor->get_type()) {
-        case aa55_const::SENSOR_TYPE::WORK_MODE:
-          sensor->publish_state("Offline");
-          break;
-        case aa55_const::SENSOR_TYPE::ERROR_CODES:
-          sensor->publish_state("");
-      }
+    for (AA55InverterBaseSensor *sensor : this->sensors_) {
+      sensor->handle_inverter_offline();
     }
 
     for (AA55InverterBaseInput *input : this->inputs_) {
-      switch (input->get_type()) {
-        case aa55_const::INPUT_TYPE::START_STOP:
-          static_cast<AA55InverterSwitch *>(input)->publish_state(false);
-          break;
-        case aa55_const::INPUT_TYPE::ADJUST_POWER:
-          static_cast<AA55InverterNumber *>(input)->publish_state(NAN);
-      }
+      input->handle_inverter_offline();
     }
   }
 }
@@ -157,9 +121,7 @@ void AA55Inverter::update() {
   this->parent_bus_->queue_command(query_run_info_command);
 }
 
-void AA55Inverter::add_sensor(AA55InverterSensor *sensor) { this->sensors_.push_back(sensor); }
-
-void AA55Inverter::add_text_sensor(AA55InverterTextSensor *sensor) { this->text_sensors_.push_back(sensor); }
+void AA55Inverter::add_sensor(AA55InverterBaseSensor *sensor) { this->sensors_.push_back(sensor); }
 
 void AA55Inverter::add_input(AA55InverterBaseInput *input) { this->inputs_.push_back(input); }
 
@@ -177,7 +139,7 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
   }
 
   // Save received values in the sensor attributes + publish state if applicable
-  for (AA55InverterSensor *sensor : this->sensors_) {
+  for (AA55InverterBaseSensor *sensor : this->sensors_) {
     if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       sensor->parse_payload(payload);
       ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
@@ -186,26 +148,7 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
       if (sensor->time_to_update() ||
           !this->received_packet_since_online_) {  // Publish state if it matches sensor config or if it is the first
                                                    // state we received after the inverter came online
-        sensor->publish_state(sensor->get_newest_value());
-        if (sensor->get_skip_updates() != 0) {
-          sensor->reset_skipped_updates();
-        }
-      } else {
-        sensor->increment_skipped_updates();
-      }
-    }
-  }
-
-  for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
-      sensor->parse_payload(payload);
-      ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
-               sensor->time_to_update() ? "yes" : "no");
-
-      if (sensor->time_to_update() ||
-          !this->received_packet_since_online_) {  // Publish state if it matches sensor config or if it is the first
-                                                   // state we received after the inverter came online
-        sensor->publish_state(sensor->get_newest_value());
+        sensor->emit_state();
         if (sensor->get_skip_updates() != 0) {
           sensor->reset_skipped_updates();
         }
@@ -234,17 +177,10 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
   }
 
   // Save received values in the sensor attributes
-  for (AA55InverterSensor *sensor : this->sensors_) {
+  for (AA55InverterBaseSensor *sensor : this->sensors_) {
     if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
       sensor->parse_payload(payload);
-      sensor->publish_state(sensor->get_newest_value());
-    }
-  }
-
-  for (AA55InverterTextSensor *sensor : this->text_sensors_) {
-    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
-      sensor->parse_payload(payload);
-      sensor->publish_state(sensor->get_newest_value());
+      sensor->emit_state();
     }
   }
 }
@@ -303,14 +239,7 @@ void AA55Inverter::handle_address_confirm(const std::vector<uint8_t> &payload) {
 
   // Initialize inputs
   for (AA55InverterBaseInput *input : this->inputs_) {
-    switch (input->get_type()) {
-      case aa55_const::INPUT_TYPE::START_STOP:
-        static_cast<AA55InverterSwitch *>(input)->publish_state(true);
-        break;
-      case aa55_const::INPUT_TYPE::ADJUST_POWER:
-        static_cast<AA55InverterNumber *>(input)->publish_state(100);
-        break;
-    }
+    input->handle_inverter_online();
   }
 }
 }  // namespace aa55_inverter
