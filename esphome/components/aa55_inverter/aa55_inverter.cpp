@@ -141,25 +141,8 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
   // Save received values in the sensor attributes + publish state if applicable
   for (AA55InverterBaseSensor *sensor : this->sensors_) {
     if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
-      sensor->parse_payload(payload);
-      ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", sensor->get_id().c_str(),
-               sensor->time_to_update() ? "yes" : "no");
-
-      if (sensor->time_to_update() ||
-          !this->received_packet_since_online_) {  // Publish state if it matches sensor config or if it is the first
-                                                   // state we received after the inverter came online
-        sensor->emit_state();
-        if (sensor->get_skip_updates() != 0) {
-          sensor->reset_skipped_updates();
-        }
-      } else {
-        sensor->increment_skipped_updates();
-      }
+      sensor->process_response(payload);
     }
-  }
-
-  if (!this->received_packet_since_online_) {
-    this->received_packet_since_online_ = true;
   }
 }
 
@@ -179,8 +162,7 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
   // Save received values in the sensor attributes
   for (AA55InverterBaseSensor *sensor : this->sensors_) {
     if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
-      sensor->parse_payload(payload);
-      sensor->emit_state();
+      sensor->process_response(payload);
     }
   }
 }
@@ -227,8 +209,12 @@ void AA55Inverter::handle_address_confirm(const std::vector<uint8_t> &payload) {
   ESP_LOGI(LOGGING_TAG, "Inverter %x on bus %s came online.", this->slave_address_,
            this->parent_bus_->get_component_id().c_str());
   this->inverter_online_ = true;
-  this->received_packet_since_online_ = false;
   this->parent_bus_->add_registered_inverter(this);
+  for (AA55InverterBaseSensor *sensor : this->sensors_) {
+    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
+      sensor->force_next_update();  // Force update for all sensors with run info response source so they update immediately with correct values on the next received response
+    }
+  }
 
   // Get serial & model info
   ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->slave_address_);

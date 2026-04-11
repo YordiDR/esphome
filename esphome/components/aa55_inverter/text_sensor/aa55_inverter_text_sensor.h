@@ -16,23 +16,35 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
     this->offline_value_ = offline_value;
   };
 
-  void parse_payload(const std::vector<uint8_t> &payload) override {
-    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", this->id_.c_str(), this->payload_location_,
-             this->payload_length_);
-    switch (this->type_) {
-      case aa55_const::SENSOR_TYPE::WORK_MODE:
-        this->parse_work_mode_payload(payload);
-        break;
-      case aa55_const::SENSOR_TYPE::ERROR_CODES:
-        this->parse_error_codes_payload(payload);
-        break;
-      default:
-        this->parse_ascii_payload(payload);
-    }
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %s", this->id_.c_str(), this->newest_value_.c_str());
-  }
+  void process_response(const std::vector<uint8_t> &payload) override {
+    ESP_LOGV(LOGGING_TAG, "Checking if it's time to update text sensor %s: %s", this->id_.c_str(),
+             this->time_to_update() ? "yes" : "no");
 
-  void emit_state() override { this->publish_state(this->newest_value_); }
+    if (this->time_to_update()) {
+      ESP_LOGV(LOGGING_TAG, "Parsing text sensor%s from payload[%d], length %d bytes.", this->id_.c_str(), this->payload_location_,
+               this->payload_length_);
+      switch (this->type_) {
+        case aa55_const::SENSOR_TYPE::WORK_MODE:
+          this->parse_work_mode_payload(payload);
+          break;
+        case aa55_const::SENSOR_TYPE::ERROR_CODES:
+          this->parse_error_codes_payload(payload);
+          break;
+        default:
+          this->parse_ascii_payload(payload);
+      }
+
+      if (this->skip_updates_ != 0) { // Reset skipped updates counter since we just updated
+        this->skipped_updates_ = 0;
+      }
+
+      if (this->force_next_update_) { // Reset force next update flag since we just updated
+        this->force_next_update_ = false;
+      }
+    } else {
+      this->skipped_updates_++; // Increment skipped updates counter since we skipped an update
+    }
+  }
 
   void handle_inverter_offline() override {
     if (!this->offline_hold_) {
@@ -53,36 +65,38 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
   }
 
  protected:
-  std::string newest_value_{}, offline_value_{};
+  std::string offline_value_{};
 
   void parse_ascii_payload(const std::vector<uint8_t> &payload) {
-    this->newest_value_ = std::string(payload.begin() + this->payload_location_,
-                                      payload.begin() + this->payload_location_ + this->payload_length_);
+    this->publish_state(std::string(payload.begin() + this->payload_location_,
+                                    payload.begin() + this->payload_location_ + this->payload_length_));
   }
 
   void parse_work_mode_payload(const std::vector<uint8_t> &payload) {
     uint32_t work_mode_code = this->parse_int(payload);
     if (work_mode_code > 2) {
-      this->newest_value_ = "Unknown: " + std::to_string(work_mode_code);
+      this->publish_state("Unknown: " + std::to_string(work_mode_code));
     } else {
-      this->newest_value_ = aa55_const::WORK_MODE_LIST[work_mode_code];
+      this->publish_state(aa55_const::WORK_MODE_LIST[work_mode_code]);
     }
   }
 
   void parse_error_codes_payload(const std::vector<uint8_t> &payload) {
     uint32_t error_codes_code = this->parse_int(payload);
     if (error_codes_code) {
-      this->newest_value_ = "";
+      std::string error_codes_string = "";
       for (uint8_t i = 0; i < 32; ++i) {
         if (error_codes_code & (1 << i)) {
-          if (!this->newest_value_.empty()) {
-            this->newest_value_ += ", ";
+          if (!error_codes_string.empty()) {
+            error_codes_string += ", ";
           }
-          this->newest_value_ += aa55_const::ERROR_CODE_LIST[i];
+          error_codes_string += aa55_const::ERROR_CODE_LIST[i];
         }
+
+        this->publish_state(error_codes_string);
       }
     } else {
-      this->newest_value_ = "No errors";
+      this->publish_state("No errors");
     }
   }
 };

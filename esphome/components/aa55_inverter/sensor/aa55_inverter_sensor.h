@@ -15,15 +15,26 @@ class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor,
     this->offline_value_ = offline_value;
   };
 
-  void parse_payload(const std::vector<uint8_t> &payload) override {
-    ESP_LOGV(LOGGING_TAG, "Parsing %s from payload[%d], length %d bytes.", this->id_.c_str(), this->payload_location_,
-             this->payload_length_);
-    this->newest_value_ =
-        this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals());  // Apply decimal precision
-    ESP_LOGV(LOGGING_TAG, "Parsed %s: %f", this->id_.c_str(), this->newest_value_);
-  }
+  void process_response(const std::vector<uint8_t> &payload) override {
+    ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", this->id_.c_str(),
+             this->time_to_update() ? "yes" : "no");
 
-  void emit_state() override { this->publish_state(this->newest_value_); }
+    if (this->time_to_update()) {
+      ESP_LOGV(LOGGING_TAG, "Parsing sensor %s from payload[%d], length %d bytes.", this->id_.c_str(), this->payload_location_,
+               this->payload_length_);
+      this->publish_state(this->parse_int(payload) / std::pow(10.0, (float) this->get_accuracy_decimals()));  // Apply decimal precision
+      
+      if (this->skip_updates_ != 0) { // Reset skipped updates counter since we just updated
+        this->skipped_updates_ = 0;
+      }
+
+      if (this->force_next_update_) { // Reset force next update flag since we just updated
+        this->force_next_update_ = false;
+      }
+    } else {
+      this->skipped_updates_++; // Increment skipped updates counter since we skipped an update
+    }
+  }
 
   void handle_inverter_offline() override {
     if (!this->offline_hold_) {
@@ -44,7 +55,7 @@ class AA55InverterSensor : public AA55InverterBaseSensor, public sensor::Sensor,
   }
 
  protected:
-  float newest_value_{NAN}, offline_value_{};
+  float offline_value_{};
 };
 
 }  // namespace aa55_inverter

@@ -23,23 +23,13 @@ class AA55InverterBaseSensor {
 
   aa55_const::SENSOR_TYPE get_type() { return this->type_; }
 
-  uint16_t get_skip_updates() { return this->skip_updates_; }
-
   aa55_const::FUNCTION_CODE get_payload_source() { return this->payload_source_; }
 
-  uint16_t get_skipped_updates() { return this->skipped_updates_; }
-
-  uint16_t increment_skipped_updates() { return ++this->skipped_updates_; }
-
-  void reset_skipped_updates() { this->skipped_updates_ = 0; }
-
-  bool time_to_update() { return this->skipped_updates_ == this->skip_updates_; }
-
-  virtual void parse_payload(const std::vector<uint8_t> &payload) = 0;
-
-  virtual void emit_state() = 0;
+  virtual void process_response(const std::vector<uint8_t> &payload) = 0;
 
   virtual void handle_inverter_offline() = 0;
+
+  void force_next_update() { this->force_next_update_ = true; }
 
  protected:
   uint16_t skip_updates_{0};
@@ -49,8 +39,9 @@ class AA55InverterBaseSensor {
   uint8_t payload_location_{};
   uint8_t payload_length_{};
   aa55_const::FUNCTION_CODE payload_source_{};
-  bool offline_hold_{};
+  bool offline_hold_{}, force_next_update_{false};
 
+  bool time_to_update() { return this->skipped_updates_ == this->skip_updates_ || this->force_next_update_; }
   uint32_t parse_int(const std::vector<uint8_t> &payload) {
     uint32_t response = 0;
 
