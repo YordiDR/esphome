@@ -86,11 +86,8 @@ const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LOCATION = {
     {SENSOR_TYPE::E_TODAY, 44},
 
     // Query ID info sensors
-    {SENSOR_TYPE::FIRMWARE_VERSION, 0},
     {SENSOR_TYPE::MODEL, 5},
     {SENSOR_TYPE::SERIAL_NUMBER, 31},
-    {SENSOR_TYPE::NOM_VPV, 47},
-    {SENSOR_TYPE::INTERNAL_VERSION, 51},
     {SENSOR_TYPE::COUNTRY_CODE, 63}};
 
 const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LENGTH = {
