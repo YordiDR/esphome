@@ -21,8 +21,8 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
              this->time_to_update() ? "yes" : "no");
 
     if (this->time_to_update()) {
-      ESP_LOGV(LOGGING_TAG, "Parsing text sensor%s from payload[%d], length %d bytes.", this->id_.c_str(), this->payload_location_,
-               this->payload_length_);
+      ESP_LOGV(LOGGING_TAG, "Parsing text sensor%s from payload[%d], length %d bytes.", this->id_.c_str(),
+               this->payload_location_, this->payload_length_);
       switch (this->type_) {
         case aa55_const::SENSOR_TYPE::WORK_MODE:
           this->parse_work_mode_payload(payload);
@@ -34,15 +34,15 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
           this->parse_ascii_payload(payload);
       }
 
-      if (this->skip_updates_ != 0) { // Reset skipped updates counter since we just updated
+      if (this->skip_updates_ != 0) {  // Reset skipped updates counter since we just updated
         this->skipped_updates_ = 0;
       }
 
-      if (this->force_next_update_) { // Reset force next update flag since we just updated
+      if (this->force_next_update_) {  // Reset force next update flag since we just updated
         this->force_next_update_ = false;
       }
     } else {
-      this->skipped_updates_++; // Increment skipped updates counter since we skipped an update
+      this->skipped_updates_++;  // Increment skipped updates counter since we skipped an update
     }
   }
 
@@ -92,9 +92,8 @@ class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor
           }
           error_codes_string += aa55_const::ERROR_CODE_LIST[i];
         }
-
-        this->publish_state(error_codes_string);
       }
+      this->publish_state(error_codes_string);
     } else {
       this->publish_state("No errors");
     }
