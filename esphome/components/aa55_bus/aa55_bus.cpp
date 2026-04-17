@@ -109,7 +109,6 @@ void AA55Bus::process_rx() {
   const uint8_t buffer_max_size{64};
   bool packet_header_found{false};
   uint8_t packet_size{UINT8_MAX};
-  bool packet_fully_received{false};
 
   while (this->available() && this->receive_buffer_.size() < aa55_const::MAX_BUFFER_LENGTH &&
          millis() - start_time < 30) {  // Avoid blocking the thread for 30ms+
