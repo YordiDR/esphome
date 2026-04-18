@@ -8,10 +8,10 @@ MULTI_CONF = True
 
 CONF_INVERTER_ID = "aa55_inverter_id"
 CONF_SERIAL_NUMBER = "serial_number"
-CONF_SLAVE_ADDRESS = "slave_address"
+CONF_DEVICE_ADDRESS = "device_address"
 CONF_OFFLINE_HOLD = "offline_hold"
 CONF_OFFLINE_VALUE = "offline_value"
-CONF_ONLINE_INTIAL_VALUE = "online_initial_value"
+CONF_ONLINE_INITIAL_VALUE = "online_initial_value"
 
 aa55_inverter_ns = cg.esphome_ns.namespace("aa55_inverter")
 aa55_bus_ns = cg.esphome_ns.namespace("aa55_bus")
@@ -29,7 +29,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(AA55Inverter),
             cv.Required(CONF_SERIAL_NUMBER): cv.string,
-            cv.Required(CONF_SLAVE_ADDRESS): cv.hex_uint8_t,
+            cv.Required(CONF_DEVICE_ADDRESS): cv.hex_uint8_t,
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -41,7 +41,7 @@ async def to_code(config):
     var = cg.new_Pvariable(
         config[CONF_ID],
         config[CONF_SERIAL_NUMBER],
-        config[CONF_SLAVE_ADDRESS],
+        config[CONF_DEVICE_ADDRESS],
     )
     await cg.register_component(var, config)
     await aa55_bus.add_aa55_inverter(var, config)

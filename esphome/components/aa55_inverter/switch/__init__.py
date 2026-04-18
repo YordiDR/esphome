@@ -7,7 +7,7 @@ from .. import (
     CONF_INVERTER_ID,
     CONF_OFFLINE_HOLD,
     CONF_OFFLINE_VALUE,
-    CONF_ONLINE_INTIAL_VALUE,
+    CONF_ONLINE_INITIAL_VALUE,
     INVERTER_CHILD_SCHEMA,
     aa55_const_ns,
     aa55_inverter_ns,
@@ -41,7 +41,7 @@ CONFIG_SCHEMA = (
                     cv.Optional(CONF_OFFLINE_VALUE, default="OFF"): cv.enum(
                         ON_OFF_OPTIONS, upper=True
                     ),
-                    cv.Optional(CONF_ONLINE_INTIAL_VALUE, default="ON"): cv.enum(
+                    cv.Optional(CONF_ONLINE_INITIAL_VALUE, default="ON"): cv.enum(
                         ON_OFF_OPTIONS, upper=True
                     ),
                 }
@@ -68,7 +68,7 @@ async def to_code(config):
                 inverter,
                 conf.get(CONF_OFFLINE_HOLD, False),
                 OnOff(conf.get(CONF_OFFLINE_VALUE, "OFF")),
-                OnOff(conf.get(CONF_ONLINE_INTIAL_VALUE, "ON")),
+                OnOff(conf.get(CONF_ONLINE_INITIAL_VALUE, "ON")),
             )
             await cg.register_component(var, conf)
             await switch.register_switch(var, conf)

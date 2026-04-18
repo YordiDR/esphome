@@ -1,8 +1,8 @@
 # Configuration notes
 - only sensors/inputs which have at least an ID defined will be processed
 - skip_updates can be used to alter the state publish interval, it is not applicable on sensors read from the AA55 "ID info" command (= model, serial number & country code) as these normally do not change when an inverter is online. skip_updates is an integer value which describes the amount of update intervals to skip before publishing a new value. The update interval is specified on the inverter. Example: "inverter update_interval: 5s, sensor skip_updates 1" means the sensor will skip 1 interval = update every 10s
-- aa55_bus master_address is a hexadecimal value, you can choose this freely. The only restriction from the AA55 protocol is that the first bit must be 1 (= range 0x80 - 0xFF)
-- aa55_inverter slave_address is a hexadecimal value, you can choose this freely. The AA55 protocol dictates that the first bit must be 0 (= range 0x00 - 0x7E). 0x7F is used as a broadcast address, you should avoid it. This address will be assigned to the inverter over AA55, it does not need to be configured in the inverter manually.
+- aa55_bus controller_address is a hexadecimal value, you can choose this freely. The only restriction from the AA55 protocol is that the first bit must be 1 (= range 0x80 - 0xFF)
+- aa55_inverter device_address is a hexadecimal value, you can choose this freely. The AA55 protocol dictates that the first bit must be 0 (= range 0x00 - 0x7E). 0x7F is used as a broadcast address, you should avoid it. This address will be assigned to the inverter over AA55, it does not need to be configured in the inverter manually.
 
 # Example configuration
 ```yaml
@@ -18,12 +18,12 @@ uart:
 aa55_bus:
   - id: aa55_bus01
     uart_id: uart_aa55_01
-    master_address: 0xFF
+    controller_address: 0xFF
 
 aa55_inverter:
   - id: aa55_inverter01
     aa55_bus_id: aa55_bus01
-    slave_address: 0x01
+    device_address: 0x01
     serial_number: ABC
     update_interval: 5s
     setup_priority: -15

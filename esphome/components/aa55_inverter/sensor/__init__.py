@@ -51,7 +51,6 @@ CONF_VAC1_FAULT_VALUE = "vac1_fault_value"
 CONF_FAC1_FAULT_VALUE = "fac1_fault_value"
 CONF_GFCI_FAULT_VALUE = "gfci_fault_value"
 CONF_E_TODAY = "e_today"
-CONF_NOM_VPV = "nom_vpv"
 CONF_COUNTRY_CODE = "country_code"
 CONF_SKIP_UPDATES = "skip_updates"
 

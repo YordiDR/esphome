@@ -14,14 +14,14 @@ namespace aa55_inverter {
 
 class AA55Inverter : public PollingComponent {
  public:
-  AA55Inverter(std::string serial_number, uint8_t slave_address);
+  AA55Inverter(std::string serial_number, uint8_t device_address);
   void setup() override;
   void dump_config() override;
   void loop() override;
   void update() override;
   void add_sensor(AA55InverterBaseSensor *sensor);
   void add_input(AA55InverterBaseInput *input);
-  uint8_t get_slave_address() { return this->slave_address_; };
+  uint8_t get_device_address() { return this->device_address_; };
   void set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; };
   void queue_response_packet(const aa55_const::AA55Packet &packet) { this->response_packets_buffer_.push(packet); };
   void send_execute_command(aa55_const::FUNCTION_CODE function_code, uint8_t payload = 0);
@@ -30,7 +30,7 @@ class AA55Inverter : public PollingComponent {
  protected:
   // Internal variables
   std::string serial_number_;
-  uint8_t slave_address_;
+  uint8_t device_address_;
   std::vector<AA55InverterBaseSensor *> sensors_;
   std::vector<AA55InverterBaseInput *> inputs_;
   bool inverter_online_{false};

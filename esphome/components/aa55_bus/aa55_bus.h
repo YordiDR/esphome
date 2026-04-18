@@ -23,7 +23,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void loop() override;
   void add_inverter(aa55_inverter::AA55Inverter *inverter) { this->configured_inverters_.push_back(inverter); };
   void queue_command(aa55_const::AA55Packet command) { this->commands_to_send_.push_back(command); };
-  uint8_t get_master_address() { return this->master_address_; };
+  uint8_t get_controller_address() { return this->controller_address_; };
   std::string get_component_id() { return this->id_; };
   void add_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
     this->registered_inverters_.push_back(inverter);
@@ -36,7 +36,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
 
  protected:
   // Internal variables
-  uint8_t master_address_;
+  uint8_t controller_address_;
   std::deque<uint8_t> receive_buffer_;
   std::deque<aa55_const::AA55Packet> commands_to_send_;
   std::string id_;

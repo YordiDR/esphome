@@ -7,7 +7,7 @@ from .. import (
     CONF_INVERTER_ID,
     CONF_OFFLINE_HOLD,
     CONF_OFFLINE_VALUE,
-    CONF_ONLINE_INTIAL_VALUE,
+    CONF_ONLINE_INITIAL_VALUE,
     INVERTER_CHILD_SCHEMA,
     aa55_const_ns,
     aa55_inverter_ns,
@@ -36,7 +36,7 @@ CONFIG_SCHEMA = (
                 {
                     cv.Optional(CONF_OFFLINE_HOLD, default=False): cv.boolean,
                     cv.Optional(CONF_OFFLINE_VALUE, default=float("nan")): cv.float_,
-                    cv.Optional(CONF_ONLINE_INTIAL_VALUE, default=100): cv.float_,
+                    cv.Optional(CONF_ONLINE_INITIAL_VALUE, default=100): cv.float_,
                 }
             ),
         }
@@ -61,7 +61,7 @@ async def to_code(config):
                 inverter,
                 conf.get(CONF_OFFLINE_HOLD, False),
                 conf.get(CONF_OFFLINE_VALUE, float("nan")),
-                conf.get(CONF_ONLINE_INTIAL_VALUE, float("nan")),
+                conf.get(CONF_ONLINE_INITIAL_VALUE, float("nan")),
             )
 
             await cg.register_component(var, conf)

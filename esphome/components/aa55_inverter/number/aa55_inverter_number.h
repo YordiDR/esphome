@@ -38,17 +38,17 @@ class AA55InverterNumber : public AA55InverterBaseInput, public number::Number, 
   void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override {
     if (response != 6) {
       ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",
-               this->parent_inverter_->get_slave_address(), ((uint8_t) function_code) & 0x7F);
+               this->parent_inverter_->get_device_address(), ((uint8_t) function_code) & 0x7F);
       return;
     }
 
     if (this->type_ == aa55_const::INPUT_TYPE::ADJUST_POWER &&
         function_code == aa55_const::FUNCTION_CODE::ADJUST_POWER_RESPONSE) {
       ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the adjust power command.",
-               this->parent_inverter_->get_slave_address());
+               this->parent_inverter_->get_device_address());
     } else {
       ESP_LOGD(LOGGING_TAG, "Inverter %x sensor %s got an incorrect function code %x as response.",
-               this->parent_inverter_->get_slave_address(), this->id_, function_code);
+               this->parent_inverter_->get_device_address(), this->id_, function_code);
       return;
     }
 

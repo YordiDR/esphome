@@ -16,10 +16,8 @@ DEPENDENCIES = ["aa55_inverter"]
 
 CONF_WORK_MODE = "work_mode"
 CONF_ERROR_CODES = "error_codes"
-CONF_FIRMWARE_VERSION = "firmware_version"
 CONF_MODEL = "model"
 CONF_SERIAL_NUMBER = "serial_number"
-CONF_INTERNAL_VERSION = "internal_version"
 CONF_SKIP_UPDATES = "skip_updates"
 
 AA55InverterTextSensor = aa55_inverter_ns.class_(

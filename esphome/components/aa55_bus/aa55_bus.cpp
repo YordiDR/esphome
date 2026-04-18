@@ -11,9 +11,9 @@
 namespace esphome {
 namespace aa55_bus {
 
-AA55Bus::AA55Bus(std::string id, uint8_t master_address) : uart::UARTDevice(), Component() {
+AA55Bus::AA55Bus(std::string id, uint8_t controller_address) : uart::UARTDevice(), Component() {
   this->id_ = id;
-  this->master_address_ = master_address;
+  this->controller_address_ = controller_address;
 }
 
 void AA55Bus::setup() {}
@@ -21,7 +21,7 @@ void AA55Bus::setup() {}
 void AA55Bus::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Bus component");
   ESP_LOGCONFIG(LOGGING_TAG, "  Bus ID: %s", this->id_.c_str());
-  ESP_LOGCONFIG(LOGGING_TAG, "  Master address: %x", this->master_address_);
+  ESP_LOGCONFIG(LOGGING_TAG, "  Controller address: %x", this->controller_address_);
 }
 
 void AA55Bus::loop() {
@@ -38,7 +38,7 @@ void AA55Bus::loop() {
              "%dms has passed.",
              aa55_const::OFFLINE_QUERY_INTERVAL);
     const aa55_const::AA55Packet offline_query_command = {
-        this->master_address_, aa55_const::DEFAULT_INVERTER_ADDRESS, aa55_const::CONTROL_CODE::REGISTER,
+        this->controller_address_, aa55_const::DEFAULT_INVERTER_ADDRESS, aa55_const::CONTROL_CODE::REGISTER,
         aa55_const::FUNCTION_CODE::OFFLINE_QUERY, aa55_const::EMPTY_VECTOR};
 
     // Check if queue already contains an offline query command to avoid flooding
@@ -196,8 +196,8 @@ void AA55Bus::process_rx() {
       continue;
     }
 
-    // Check if the packet is destined for this master
-    if (this->receive_buffer_.at(3) != this->master_address_) {
+    // Check if the packet is destined for this controller
+    if (this->receive_buffer_.at(3) != this->controller_address_) {
       ESP_LOGV(LOGGING_TAG, "Received packet for another device (%x). Discarding...", this->receive_buffer_.at(3));
       this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
       packet_header_found = false;
@@ -237,7 +237,7 @@ void AA55Bus::process_rx() {
       uint8_t packet_source_address = this->receive_buffer_.at(2);
       find_inverter_it = std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
                                       [packet_source_address](aa55_inverter::AA55Inverter *inverter) {
-                                        return inverter->get_slave_address() == packet_source_address;
+                                        return inverter->get_device_address() == packet_source_address;
                                       });
       if (find_inverter_it == this->configured_inverters_.end()) {
         ESP_LOGD(LOGGING_TAG, "Received packet from an unregistered inverter (%x). Discarding...",
