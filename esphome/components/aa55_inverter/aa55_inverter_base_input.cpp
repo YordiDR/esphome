@@ -1,4 +1,4 @@
-#include "esphome/components/aa55_inverter/aa55_inverter_base_input.h"
+#include "aa55_inverter_base_input.h"
 
 namespace esphome {
 namespace aa55_inverter {

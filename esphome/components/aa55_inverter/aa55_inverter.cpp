@@ -2,10 +2,10 @@
 #include <cmath>
 #include <algorithm>
 #include "esphome/core/log.h"
-#include "esphome/components/aa55_bus/aa55_bus.h"
-#include "esphome/components/aa55_inverter/aa55_inverter.h"
-#include "esphome/components/aa55_inverter/switch/aa55_inverter_switch.h"
-#include "esphome/components/aa55_inverter/number/aa55_inverter_number.h"
+#include "../aa55_bus/aa55_bus.h"
+#include "aa55_inverter.h"
+#include "switch/aa55_inverter_switch.h"
+#include "number/aa55_inverter_number.h"
 
 namespace esphome {
 namespace aa55_inverter {

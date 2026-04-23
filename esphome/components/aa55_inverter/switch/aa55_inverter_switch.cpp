@@ -1,6 +1,6 @@
 #include "esphome/core/log.h"
-#include "esphome/components/aa55_inverter/switch/aa55_inverter_switch.h"
-#include "esphome/components/aa55_inverter/aa55_inverter.h"
+#include "aa55_inverter_switch.h"
+#include "../aa55_inverter.h"
 
 namespace esphome {
 namespace aa55_inverter {

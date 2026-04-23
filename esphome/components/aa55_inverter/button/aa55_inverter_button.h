@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
-#include "esphome/components/button/button.h"
 #include "esphome/core/component.h"
-#include "esphome/components/aa55_inverter/aa55_inverter_base_input.h"
+#include "../../button/button.h"
+#include "../aa55_inverter_base_input.h"
 
 namespace esphome {
 namespace aa55_inverter {

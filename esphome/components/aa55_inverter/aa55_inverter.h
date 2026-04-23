@@ -3,10 +3,10 @@
 #include <vector>
 #include <queue>
 #include "esphome/core/component.h"
-#include "esphome/components/aa55_bus/aa55_bus.h"
-#include "esphome/components/aa55_inverter/aa55_inverter_base_sensor.h"
-#include "esphome/components/aa55_inverter/aa55_inverter_base_input.h"
-#include "esphome/components/aa55_inverter/const.h"
+#include "../aa55_bus/aa55_bus.h"
+#include "aa55_inverter_base_sensor.h"
+#include "aa55_inverter_base_input.h"
+#include "const.h"
 
 namespace esphome {
 namespace aa55_inverter {

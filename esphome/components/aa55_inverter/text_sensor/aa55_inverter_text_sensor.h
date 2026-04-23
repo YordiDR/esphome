@@ -1,9 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/component.h"
-#include "esphome/components/aa55_inverter/aa55_inverter_base_sensor.h"
+#include "../../text_sensor/text_sensor.h"
+#include "../aa55_inverter_base_sensor.h"
 
 namespace esphome {
 namespace aa55_inverter {

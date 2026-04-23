@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <string>
-#include "esphome/components/aa55_bus/const.h"
+#include "../aa55_bus/const.h"
 
 namespace esphome {
 namespace aa55_inverter {

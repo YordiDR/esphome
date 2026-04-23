@@ -1,5 +1,5 @@
 #include "esphome/core/log.h"
-#include "esphome/components/aa55_inverter/sensor/aa55_inverter_sensor.h"
+#include "aa55_inverter_sensor.h"
 
 namespace esphome {
 namespace aa55_inverter {

@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
-#include "esphome/components/sensor/sensor.h"
 #include "esphome/core/component.h"
-#include "esphome/components/aa55_inverter/aa55_inverter_base_sensor.h"
+#include "../../sensor/sensor.h"
+#include "../aa55_inverter_base_sensor.h"
 
 namespace esphome {
 namespace aa55_inverter {
