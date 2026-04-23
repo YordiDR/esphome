@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <deque>
 #include "esphome/core/component.h"
-#include "esphome/components/uart/uart.h"
-#include "esphome/components/aa55_bus/const.h"
+#include "../uart/uart.h"
+#include "const.h"
 
 namespace esphome {
 namespace aa55_inverter {
