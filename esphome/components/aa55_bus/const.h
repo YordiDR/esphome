@@ -1,9 +1,9 @@
 #pragma once
 #include <cstdint>
+#include <vector>
 
 namespace esphome {
 namespace aa55_const {
-
 static const uint16_t MAX_BUFFER_LENGTH = 512;  // Max characters for serial buffer, 150 bytes is the length of the
                                                 // response to the longest command (read running info list)
 static const uint32_t OFFLINE_QUERY_INTERVAL =

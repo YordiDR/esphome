@@ -1,13 +1,12 @@
 #pragma once
-
-#include "esphome/core/component.h"
-#include "aa55_inverter_base_sensor.h"
-#include "aa55_inverter_base_input.h"
-#include "../aa55_bus/aa55_bus.h"
-#include "const.h"
 #include <string>
 #include <vector>
 #include <queue>
+#include "esphome/core/component.h"
+#include "esphome/components/aa55_bus/aa55_bus.h"
+#include "esphome/components/aa55_inverter/aa55_inverter_base_sensor.h"
+#include "esphome/components/aa55_inverter/aa55_inverter_base_input.h"
+#include "esphome/components/aa55_inverter/const.h"
 
 namespace esphome {
 namespace aa55_inverter {
@@ -21,11 +20,11 @@ class AA55Inverter : public PollingComponent {
   void update() override;
   void add_sensor(AA55InverterBaseSensor *sensor);
   void add_input(AA55InverterBaseInput *input);
-  uint8_t get_device_address() { return this->device_address_; };
-  void set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; };
-  void queue_response_packet(const aa55_const::AA55Packet &packet) { this->response_packets_buffer_.push(packet); };
+  uint8_t get_device_address();
+  void set_parent_bus(aa55_bus::AA55Bus *bus);
+  void queue_response_packet(const aa55_const::AA55Packet &packet);
   void send_execute_command(aa55_const::FUNCTION_CODE function_code, uint8_t payload = 0);
-  std::string get_serial_number() { return this->serial_number_; };
+  std::string get_serial_number();
 
  protected:
   // Internal variables

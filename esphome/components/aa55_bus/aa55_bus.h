@@ -1,19 +1,17 @@
 #pragma once
-#include "esphome/core/component.h"
-#include "esphome/components/uart/uart.h"
-#include "const.h"
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <deque>
+#include "esphome/core/component.h"
+#include "esphome/components/uart/uart.h"
+#include "esphome/components/aa55_bus/const.h"
 
 namespace esphome {
 namespace aa55_inverter {
 class AA55Inverter;  // Forward declaration of AA55Inverter class to avoid circular dependency
 }
 namespace aa55_bus {
-
-static const char *LOGGING_TAG = "aa55_bus";
 
 class AA55Bus : public uart::UARTDevice, public Component {
  public:

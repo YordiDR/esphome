@@ -1,15 +1,16 @@
-#include "esphome/core/log.h"
-#include "aa55_bus.h"
-#include "../aa55_inverter/aa55_inverter.h"
 #include <deque>
 #include <iterator>
 #include <cmath>
 #include <algorithm>
 #include <climits>
 #include <numeric>
+#include "esphome/core/log.h"
+#include "esphome/components/aa55_bus/aa55_bus.h"
+#include "esphome/components/aa55_inverter/aa55_inverter.h"
 
 namespace esphome {
 namespace aa55_bus {
+static const char *LOGGING_TAG = "aa55_bus";
 
 AA55Bus::AA55Bus(std::string id, uint8_t controller_address) : uart::UARTDevice(), Component() {
   this->id_ = id;

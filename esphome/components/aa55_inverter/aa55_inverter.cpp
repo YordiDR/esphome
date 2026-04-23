@@ -1,14 +1,17 @@
-#include "esphome/core/log.h"
-#include "aa55_inverter.h"
-#include "switch/aa55_inverter_switch.h"
-#include "number/aa55_inverter_number.h"
-#include "../aa55_bus/aa55_bus.h"
 #include <iterator>
 #include <cmath>
 #include <algorithm>
+#include "esphome/core/log.h"
+#include "esphome/components/aa55_bus/aa55_bus.h"
+#include "esphome/components/aa55_inverter/aa55_inverter.h"
+#include "esphome/components/aa55_inverter/switch/aa55_inverter_switch.h"
+#include "esphome/components/aa55_inverter/number/aa55_inverter_number.h"
 
 namespace esphome {
 namespace aa55_inverter {
+
+static const char *LOGGING_TAG = "aa55_inverter";
+
 AA55Inverter::AA55Inverter(std::string serial_number, uint8_t device_address) : PollingComponent() {
   this->serial_number_ = serial_number;
   this->device_address_ = device_address;
@@ -202,6 +205,16 @@ void AA55Inverter::handle_registration_request(const std::vector<uint8_t> &paylo
       aa55_const::CONTROL_CODE::REGISTER, aa55_const::FUNCTION_CODE::ALLOC_REG_ADDR, addr_confirm_payload};
   this->parent_bus_->queue_command(address_confirm_command);
 }
+
+void AA55Inverter::queue_response_packet(const aa55_const::AA55Packet &packet) {
+  this->response_packets_buffer_.push(packet);
+}
+
+uint8_t AA55Inverter::get_device_address() { return this->device_address_; }
+
+void AA55Inverter::set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; }
+
+std::string AA55Inverter::get_serial_number() { return this->serial_number_; }
 
 // Function which is triggered when the inverter comes online by confirming its address.
 void AA55Inverter::handle_address_confirm(const std::vector<uint8_t> &payload) {

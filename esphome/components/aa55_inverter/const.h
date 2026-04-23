@@ -1,11 +1,11 @@
 #pragma once
 #include <cstdint>
 #include <unordered_map>
-#include "../aa55_bus/const.h"
+#include <string>
+#include "esphome/components/aa55_bus/const.h"
 
 namespace esphome {
 namespace aa55_const {
-
 static const uint32_t INVERTER_OFFLINE_TIMEOUT =
     30000;  // Time in ms after which an inverter is considered offline if no packets have been received
 

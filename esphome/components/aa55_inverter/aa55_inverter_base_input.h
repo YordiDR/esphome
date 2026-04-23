@@ -1,30 +1,19 @@
 #pragma once
-#include "const.h"
+#include "esphome/components/aa55_inverter/const.h"
 
 namespace esphome {
 namespace aa55_inverter {
+
 class AA55Inverter;  // Forward declaration of AA55Inverter class to avoid circular dependency
 
 class AA55InverterBaseInput {
  public:
-  AA55InverterBaseInput(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter, bool offline_hold) {
-    this->id_ = id;
-    this->type_ = type;
-    this->parent_inverter_ = parent_inverter;
-    this->offline_hold_ = offline_hold;
-    this->response_function_code_ = aa55_const::MAP_INPUT_RESPONSE.at(type);
-  }
-
-  aa55_const::INPUT_TYPE get_type() { return this->type_; }
-
-  std::string get_id() { return this->id_; }
-
-  aa55_const::FUNCTION_CODE get_response_function_code() { return this->response_function_code_; }
-
+  AA55InverterBaseInput(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter, bool offline_hold);
+  aa55_const::INPUT_TYPE get_type();
+  std::string get_id();
+  aa55_const::FUNCTION_CODE get_response_function_code();
   virtual void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) = 0;
-
   virtual void handle_inverter_offline() = 0;
-
   virtual void handle_inverter_online() = 0;
 
  protected:
