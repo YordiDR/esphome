@@ -3,7 +3,7 @@ from esphome.components import button
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-from .. import CONF_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_inverter_ns
+from .. import CONF_AA55_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_inverter_ns
 
 DEPENDENCIES = ["aa55_inverter"]
 
@@ -28,7 +28,7 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    inverter = await cg.get_variable(config[CONF_INVERTER_ID])
+    inverter = await cg.get_variable(config[CONF_AA55_INVERTER_ID])
 
     for key, conf in config.items():
         if not isinstance(conf, dict):
