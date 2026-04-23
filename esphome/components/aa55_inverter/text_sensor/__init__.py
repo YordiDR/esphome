@@ -1,10 +1,10 @@
 import esphome.codegen as cg
 from esphome.components import text_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, CONF_MODEL
 
 from .. import (
-    CONF_INVERTER_ID,
+    CONF_AA55_INVERTER_ID,
     CONF_OFFLINE_HOLD,
     CONF_OFFLINE_VALUE,
     INVERTER_CHILD_SCHEMA,
@@ -15,7 +15,6 @@ DEPENDENCIES = ["aa55_inverter"]
 
 CONF_WORK_MODE = "work_mode"
 CONF_ERROR_CODES = "error_codes"
-CONF_MODEL = "model"
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_SKIP_UPDATES = "skip_updates"
 
@@ -69,7 +68,7 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    inverter = await cg.get_variable(config[CONF_INVERTER_ID])
+    inverter = await cg.get_variable(config[CONF_AA55_INVERTER_ID])
 
     for key, conf in config.items():
         if not isinstance(conf, dict):

@@ -6,7 +6,7 @@ from esphome.const import CONF_ID
 AUTO_LOAD = ["aa55_bus"]
 MULTI_CONF = True
 
-CONF_INVERTER_ID = "aa55_inverter_id"
+CONF_AA55_INVERTER_ID = "aa55_inverter_id"
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_DEVICE_ADDRESS = "device_address"
 CONF_OFFLINE_HOLD = "offline_hold"
@@ -20,7 +20,7 @@ AA55Inverter = aa55_inverter_ns.class_(
 )
 
 INVERTER_CHILD_SCHEMA = cv.Schema(
-    {cv.GenerateID(CONF_INVERTER_ID): cv.use_id(AA55Inverter)}
+    {cv.GenerateID(CONF_AA55_INVERTER_ID): cv.use_id(AA55Inverter)}
 )
 
 CONFIG_SCHEMA = (

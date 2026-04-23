@@ -3,6 +3,7 @@ from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
+    CONF_TEMPERATURE,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_DURATION,
     DEVICE_CLASS_ENERGY,
@@ -23,7 +24,7 @@ from esphome.const import (
 )
 
 from .. import (
-    CONF_INVERTER_ID,
+    CONF_AA55_INVERTER_ID,
     CONF_OFFLINE_HOLD,
     CONF_OFFLINE_VALUE,
     INVERTER_CHILD_SCHEMA,
@@ -40,7 +41,6 @@ CONF_VAC1 = "vac1"
 CONF_IAC1 = "iac1"
 CONF_FAC1 = "fac1"
 CONF_PAC = "pac"
-CONF_TEMPERATURE = "temperature"
 CONF_E_TOTAL = "e_total"
 CONF_H_TOTAL = "h_total"
 CONF_TEMPERATURE_FAULT_VALUE = "temperature_fault_value"
@@ -277,7 +277,7 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    inverter = await cg.get_variable(config[CONF_INVERTER_ID])
+    inverter = await cg.get_variable(config[CONF_AA55_INVERTER_ID])
 
     for key, conf in config.items():
         if not isinstance(conf, dict):
