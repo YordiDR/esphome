@@ -6,7 +6,7 @@ namespace esphome {
 namespace aa55_inverter {
 static const char *LOGGING_TAG = "aa55_input";
 
-AA55InverterNumber::AA55InverterNumber(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter,
+AA55InverterNumber::AA55InverterNumber(std::string id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter,
                                        bool offline_hold, float offline_value, float online_initial_value)
     : AA55InverterBaseInput(id, type, parent_inverter, offline_hold), number::Number(), Component() {
   this->offline_value_ = offline_value;
@@ -26,20 +26,20 @@ void AA55InverterNumber::dump_config() {
 void AA55InverterNumber::control(float value) {
   this->last_sent_value_ = value;
   ESP_LOGD(LOGGING_TAG, "Number %s was changed, new state: %f", this->id_.c_str(), value);
-  if (this->type_ == aa55_const::INPUT_TYPE::ADJUST_POWER) {
-    this->parent_inverter_->send_execute_command(aa55_const::FUNCTION_CODE::ADJUST_POWER, static_cast<uint8_t>(value));
+  if (this->type_ == aa55_inverter::INPUT_TYPE::ADJUST_POWER) {
+    this->parent_inverter_->send_execute_command(aa55_bus::FUNCTION_CODE::ADJUST_POWER, static_cast<uint8_t>(value));
   }
 }
 
-void AA55InverterNumber::handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) {
+void AA55InverterNumber::handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) {
   if (response != 6) {
     ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",
              this->parent_inverter_->get_device_address(), ((uint8_t) function_code) & 0x7F);
     return;
   }
 
-  if (this->type_ == aa55_const::INPUT_TYPE::ADJUST_POWER &&
-      function_code == aa55_const::FUNCTION_CODE::ADJUST_POWER_RESPONSE) {
+  if (this->type_ == aa55_inverter::INPUT_TYPE::ADJUST_POWER &&
+      function_code == aa55_bus::FUNCTION_CODE::ADJUST_POWER_RESPONSE) {
     ESP_LOGD(LOGGING_TAG, "Inverter %x ACK'ed the adjust power command.", this->parent_inverter_->get_device_address());
   } else {
     ESP_LOGD(LOGGING_TAG, "Inverter %x sensor %s got an incorrect function code %x as response.",

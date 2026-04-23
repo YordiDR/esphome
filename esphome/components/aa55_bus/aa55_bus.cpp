@@ -33,19 +33,19 @@ void AA55Bus::loop() {
 
   // Check if we need to send out an offline query (every 60s if a configured inverter is not yet registered)
   if (this->configured_inverters_.size() > this->registered_inverters_.size() &&
-      millis() - this->last_offline_request_send_time_ >= aa55_const::OFFLINE_QUERY_INTERVAL) {
+      millis() - this->last_offline_request_send_time_ >= aa55_bus::OFFLINE_QUERY_INTERVAL) {
     ESP_LOGD(LOGGING_TAG,
              "Queuing offline query command because there are unregistered inverters and the offline query interval of "
              "%dms has passed.",
-             aa55_const::OFFLINE_QUERY_INTERVAL);
-    const aa55_const::AA55Packet offline_query_command = {
-        this->controller_address_, aa55_const::DEFAULT_INVERTER_ADDRESS, aa55_const::CONTROL_CODE::REGISTER,
-        aa55_const::FUNCTION_CODE::OFFLINE_QUERY, aa55_const::EMPTY_VECTOR};
+             aa55_bus::OFFLINE_QUERY_INTERVAL);
+    const aa55_bus::AA55Packet offline_query_command = {this->controller_address_, aa55_bus::DEFAULT_INVERTER_ADDRESS,
+                                                        aa55_bus::CONTROL_CODE::REGISTER,
+                                                        aa55_bus::FUNCTION_CODE::OFFLINE_QUERY, aa55_bus::EMPTY_VECTOR};
 
     // Check if queue already contains an offline query command to avoid flooding
-    std::deque<aa55_const::AA55Packet>::iterator find_packet_it = std::find_if(
-        this->commands_to_send_.begin(), this->commands_to_send_.end(), [](const aa55_const::AA55Packet &packet) {
-          return packet.function_code == aa55_const::FUNCTION_CODE::OFFLINE_QUERY;
+    std::deque<aa55_bus::AA55Packet>::iterator find_packet_it = std::find_if(
+        this->commands_to_send_.begin(), this->commands_to_send_.end(), [](const aa55_bus::AA55Packet &packet) {
+          return packet.function_code == aa55_bus::FUNCTION_CODE::OFFLINE_QUERY;
         });
     if (find_packet_it == this->commands_to_send_.end()) {
       this->queue_command(offline_query_command);
@@ -53,11 +53,11 @@ void AA55Bus::loop() {
   }
 
   // Send first queued packet if applicable, take into account 500ms delay (see AA55 doc) before last sent packet
-  if (!this->commands_to_send_.empty() && millis() - this->last_send_time_ >= aa55_const::COMMAND_DELAY) {
+  if (!this->commands_to_send_.empty() && millis() - this->last_send_time_ >= aa55_bus::COMMAND_DELAY) {
     this->send_packet(this->commands_to_send_.front());
 
     this->last_send_time_ = millis();
-    if (this->commands_to_send_.front().function_code == aa55_const::FUNCTION_CODE::OFFLINE_QUERY) {
+    if (this->commands_to_send_.front().function_code == aa55_bus::FUNCTION_CODE::OFFLINE_QUERY) {
       this->last_offline_request_send_time_ = this->last_send_time_;
     }
 
@@ -67,14 +67,14 @@ void AA55Bus::loop() {
   }
 }
 
-void AA55Bus::send_packet(const aa55_const::AA55Packet &command) {
-  std::vector<uint8_t> packet = aa55_const::HEADERS;  // Initialize message with AA55 header, then add command details
+void AA55Bus::send_packet(const aa55_bus::AA55Packet &command) {
+  std::vector<uint8_t> packet = aa55_bus::HEADERS;  // Initialize message with AA55 header, then add command details
   packet.push_back(command.source_address);
   packet.push_back(command.destination_address);
   packet.push_back((uint8_t) command.control_code);
   packet.push_back((uint8_t) command.function_code);
   packet.push_back(command.payload.size());
-  if (command.payload != aa55_const::EMPTY_VECTOR) {
+  if (command.payload != aa55_bus::EMPTY_VECTOR) {
     packet.insert(packet.end(), command.payload.begin(), command.payload.end());
   }
   const uint16_t checksum = std::accumulate(packet.begin(), packet.end(), 0);
@@ -88,7 +88,7 @@ void AA55Bus::send_packet(const aa55_const::AA55Packet &command) {
 void AA55Bus::process_rx() {
   uint32_t start_time = millis();
   // Drop all RX buffer contents on buffer overload
-  if (this->receive_buffer_.size() >= aa55_const::MAX_BUFFER_LENGTH) {
+  if (this->receive_buffer_.size() >= aa55_bus::MAX_BUFFER_LENGTH) {
     ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", this->create_hex_string(this->receive_buffer_));
     ESP_LOGW(LOGGING_TAG, "UART RX buffer for bus %s has filled up. Clearing buffer...", this->id_.c_str());
 
@@ -111,7 +111,7 @@ void AA55Bus::process_rx() {
   bool packet_header_found{false};
   uint8_t packet_size{UINT8_MAX};
 
-  while (this->available() && this->receive_buffer_.size() < aa55_const::MAX_BUFFER_LENGTH &&
+  while (this->available() && this->receive_buffer_.size() < aa55_bus::MAX_BUFFER_LENGTH &&
          millis() - start_time < 30) {  // Avoid blocking the thread for 30ms+
     // Read all available bytes in batches to reduce UART call overhead.
     const uint8_t avail = this->available();
@@ -134,7 +134,7 @@ void AA55Bus::process_rx() {
 
       // Search returns the iterator pointing to the start of the header match
       const auto find_header_it = std::search(this->receive_buffer_.begin(), this->receive_buffer_.end(),
-                                              aa55_const::HEADERS.begin(), aa55_const::HEADERS.end());
+                                              aa55_bus::HEADERS.begin(), aa55_bus::HEADERS.end());
 
       if (find_header_it == this->receive_buffer_.end()) {
         ESP_LOGV(LOGGING_TAG, "Could not find header in receive_buffer_ yet. Reading more data...");
@@ -207,8 +207,8 @@ void AA55Bus::process_rx() {
     }
 
     std::vector<aa55_inverter::AA55Inverter *>::iterator find_inverter_it;
-    if (this->receive_buffer_.at(4) == (uint8_t) aa55_const::CONTROL_CODE::REGISTER &&
-        this->receive_buffer_.at(5) == (uint8_t) aa55_const::FUNCTION_CODE::REG_REQUEST) {
+    if (this->receive_buffer_.at(4) == (uint8_t) aa55_bus::CONTROL_CODE::REGISTER &&
+        this->receive_buffer_.at(5) == (uint8_t) aa55_bus::FUNCTION_CODE::REG_REQUEST) {
       // Pass register request to correct inverter object
       std::string discovered_serial_number(this->receive_buffer_.begin() + 7,
                                            this->receive_buffer_.begin() + packet_size - 2);
@@ -255,10 +255,10 @@ void AA55Bus::process_rx() {
     // Pass packet to inverter object
     const std::vector<uint8_t> received_payload(this->receive_buffer_.begin() + 7,
                                                 this->receive_buffer_.begin() + packet_size - 2);
-    const aa55_const::AA55Packet response_packet = {this->receive_buffer_.at(2), this->receive_buffer_.at(3),
-                                                    static_cast<aa55_const::CONTROL_CODE>(this->receive_buffer_.at(4)),
-                                                    static_cast<aa55_const::FUNCTION_CODE>(this->receive_buffer_.at(5)),
-                                                    received_payload};
+    const aa55_bus::AA55Packet response_packet = {this->receive_buffer_.at(2), this->receive_buffer_.at(3),
+                                                  static_cast<aa55_bus::CONTROL_CODE>(this->receive_buffer_.at(4)),
+                                                  static_cast<aa55_bus::FUNCTION_CODE>(this->receive_buffer_.at(5)),
+                                                  received_payload};
     (*find_inverter_it)->queue_response_packet(response_packet);
 
     this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);

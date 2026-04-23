@@ -8,7 +8,6 @@ from .. import (
     CONF_OFFLINE_HOLD,
     CONF_OFFLINE_VALUE,
     INVERTER_CHILD_SCHEMA,
-    aa55_const_ns,
     aa55_inverter_ns,
 )
 
@@ -23,7 +22,7 @@ CONF_SKIP_UPDATES = "skip_updates"
 AA55InverterTextSensor = aa55_inverter_ns.class_(
     "AA55InverterTextSensor", text_sensor.TextSensor, cg.Component
 )
-SensorType = aa55_const_ns.enum("SENSOR_TYPE", is_class=True)
+SensorType = aa55_inverter_ns.enum("SENSOR_TYPE", is_class=True)
 
 CONFIG_SCHEMA = (
     cv.Schema(

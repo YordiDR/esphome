@@ -5,7 +5,7 @@ namespace esphome {
 namespace aa55_inverter {
 static const char *LOGGING_TAG = "aa55_sensor";
 
-AA55InverterTextSensor::AA55InverterTextSensor(std::string id, aa55_const::SENSOR_TYPE type, uint16_t skip_updates,
+AA55InverterTextSensor::AA55InverterTextSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
                                                bool offline_hold, std::string offline_value)
     : AA55InverterBaseSensor(id, type, skip_updates, offline_hold), text_sensor::TextSensor(), Component() {
   this->offline_value_ = offline_value;
@@ -19,10 +19,10 @@ void AA55InverterTextSensor::process_response(const std::vector<uint8_t> &payloa
     ESP_LOGV(LOGGING_TAG, "Parsing text sensor%s from payload[%d], length %d bytes.", this->id_.c_str(),
              this->payload_location_, this->payload_length_);
     switch (this->type_) {
-      case aa55_const::SENSOR_TYPE::WORK_MODE:
+      case aa55_inverter::SENSOR_TYPE::WORK_MODE:
         this->parse_work_mode_payload(payload);
         break;
-      case aa55_const::SENSOR_TYPE::ERROR_CODES:
+      case aa55_inverter::SENSOR_TYPE::ERROR_CODES:
         this->parse_error_codes_payload(payload);
         break;
       default:
@@ -69,7 +69,7 @@ void AA55InverterTextSensor::parse_work_mode_payload(const std::vector<uint8_t> 
   if (work_mode_code > 2) {
     this->publish_state("Unknown: " + std::to_string(work_mode_code));
   } else {
-    this->publish_state(aa55_const::WORK_MODE_LIST[work_mode_code]);
+    this->publish_state(aa55_inverter::WORK_MODE_LIST[work_mode_code]);
   }
 }
 
@@ -82,7 +82,7 @@ void AA55InverterTextSensor::parse_error_codes_payload(const std::vector<uint8_t
         if (!error_codes_string.empty()) {
           error_codes_string += ", ";
         }
-        error_codes_string += aa55_const::ERROR_CODE_LIST[i];
+        error_codes_string += aa55_inverter::ERROR_CODE_LIST[i];
       }
     }
     this->publish_state(error_codes_string);

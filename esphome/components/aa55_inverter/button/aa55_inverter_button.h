@@ -9,9 +9,9 @@ namespace aa55_inverter {
 
 class AA55InverterButton : public AA55InverterBaseInput, public button::Button, public Component {
  public:
-  AA55InverterButton(std::string id, aa55_const::INPUT_TYPE type, AA55Inverter *parent_inverter);
+  AA55InverterButton(std::string id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter);
   void dump_config() override;
-  void handle_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) override;
+  void handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) override;
   void handle_inverter_offline() override;
   void handle_inverter_online() override;
 

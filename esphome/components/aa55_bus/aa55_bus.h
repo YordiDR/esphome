@@ -20,7 +20,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void dump_config() override;
   void loop() override;
   void add_inverter(aa55_inverter::AA55Inverter *inverter) { this->configured_inverters_.push_back(inverter); };
-  void queue_command(aa55_const::AA55Packet command) { this->commands_to_send_.push_back(command); };
+  void queue_command(aa55_bus::AA55Packet command) { this->commands_to_send_.push_back(command); };
   uint8_t get_controller_address() { return this->controller_address_; };
   std::string get_component_id() { return this->id_; };
   void add_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
@@ -36,19 +36,18 @@ class AA55Bus : public uart::UARTDevice, public Component {
   // Internal variables
   uint8_t controller_address_;
   std::deque<uint8_t> receive_buffer_;
-  std::deque<aa55_const::AA55Packet> commands_to_send_;
+  std::deque<aa55_bus::AA55Packet> commands_to_send_;
   std::string id_;
   std::vector<aa55_inverter::AA55Inverter *> configured_inverters_;
   std::vector<aa55_inverter::AA55Inverter *>
       registered_inverters_;  // Subset of configured inverters that have been registered on the bus
   std::uint32_t last_send_time_{
-      UINT32_MAX - aa55_const::COMMAND_DELAY};  // Set to max - interval to allow sending immediately on startup
+      UINT32_MAX - aa55_bus::COMMAND_DELAY};  // Set to max - interval to allow sending immediately on startup
   std::uint32_t last_offline_request_send_time_{
-      UINT32_MAX -
-      aa55_const::OFFLINE_QUERY_INTERVAL};  // Set to max - interval to allow sending immediately on startup
+      UINT32_MAX - aa55_bus::OFFLINE_QUERY_INTERVAL};  // Set to max - interval to allow sending immediately on startup
 
   // Functions
-  void send_packet(const aa55_const::AA55Packet &command);  // Function that generates the packet and sends it via UART
+  void send_packet(const aa55_bus::AA55Packet &command);  // Function that generates the packet and sends it via UART
   void process_rx();  // Function that parses incoming data from UART and hands it over to the configured inverter
                       // objects
   template<typename T> std::string create_hex_string(const T &data) {

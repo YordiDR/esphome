@@ -15,7 +15,6 @@ CONF_ONLINE_INITIAL_VALUE = "online_initial_value"
 
 aa55_inverter_ns = cg.esphome_ns.namespace("aa55_inverter")
 aa55_bus_ns = cg.esphome_ns.namespace("aa55_bus")
-aa55_const_ns = cg.esphome_ns.namespace("aa55_const")
 AA55Inverter = aa55_inverter_ns.class_(
     "AA55Inverter", cg.PollingComponent, aa55_bus.AA55Inverter
 )

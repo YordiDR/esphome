@@ -22,9 +22,9 @@ void AA55Inverter::setup() {
 
   // Send deregister command to inverter at ESP startup so we can register it again
   ESP_LOGD(LOGGING_TAG, "Sending remove register command for inverter %x", this->device_address_);
-  const aa55_const::AA55Packet remove_register_command = {
-      this->parent_bus_->get_controller_address(), this->device_address_, aa55_const::CONTROL_CODE::REGISTER,
-      aa55_const::FUNCTION_CODE::REMOVE_REG, aa55_const::EMPTY_VECTOR};
+  const aa55_bus::AA55Packet remove_register_command = {this->parent_bus_->get_controller_address(),
+                                                        this->device_address_, aa55_bus::CONTROL_CODE::REGISTER,
+                                                        aa55_bus::FUNCTION_CODE::REMOVE_REG, aa55_bus::EMPTY_VECTOR};
   this->parent_bus_->queue_command(remove_register_command);
 }
 
@@ -43,17 +43,17 @@ void AA55Inverter::loop() {
     this->last_packet_received_ = millis();
 
     // Parse packet
-    aa55_const::AA55Packet *packet = &this->response_packets_buffer_.front();
+    aa55_bus::AA55Packet *packet = &this->response_packets_buffer_.front();
     switch (packet->control_code) {
-      case aa55_const::CONTROL_CODE::REGISTER:
+      case aa55_bus::CONTROL_CODE::REGISTER:
         switch (packet->function_code) {
-          case aa55_const::FUNCTION_CODE::REG_REQUEST:
+          case aa55_bus::FUNCTION_CODE::REG_REQUEST:
             this->handle_registration_request(packet->payload);
             break;
-          case aa55_const::FUNCTION_CODE::ADDR_CONFIRM:
+          case aa55_bus::FUNCTION_CODE::ADDR_CONFIRM:
             this->handle_address_confirm(packet->payload);
             break;
-          case aa55_const::FUNCTION_CODE::REMOVE_CONFIRM:
+          case aa55_bus::FUNCTION_CODE::REMOVE_CONFIRM:
             ESP_LOGD(LOGGING_TAG, "Received remove register confirmation for inverter %x.", this->device_address_);
             break;
           default:
@@ -63,12 +63,12 @@ void AA55Inverter::loop() {
                 this->device_address_, packet->control_code, packet->function_code);
         }
         break;
-      case aa55_const::CONTROL_CODE::READ:
+      case aa55_bus::CONTROL_CODE::READ:
         switch (packet->function_code) {
-          case aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE:
+          case aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE:
             this->parse_run_info_response(packet->payload);
             break;
-          case aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE:
+          case aa55_bus::FUNCTION_CODE::ID_INFO_RESPONSE:
             this->parse_id_info_response(packet->payload);
             break;
           default:
@@ -78,7 +78,7 @@ void AA55Inverter::loop() {
                 this->device_address_, packet->control_code, packet->function_code);
         }
         break;
-      case aa55_const::CONTROL_CODE::EXECUTE:
+      case aa55_bus::CONTROL_CODE::EXECUTE:
         this->parse_execute_response(packet->function_code, packet->payload.at(0));
         break;
       default:
@@ -91,7 +91,7 @@ void AA55Inverter::loop() {
     this->response_packets_buffer_.pop();
   }
 
-  if (this->inverter_online_ && millis() - this->last_packet_received_ >= aa55_const::INVERTER_OFFLINE_TIMEOUT) {
+  if (this->inverter_online_ && millis() - this->last_packet_received_ >= aa55_inverter::INVERTER_OFFLINE_TIMEOUT) {
     ESP_LOGI(LOGGING_TAG, "Marking inverter %x on bus %s offline due to no response.", this->device_address_,
              this->parent_bus_->get_component_id().c_str());
     this->inverter_online_ = false;
@@ -118,9 +118,9 @@ void AA55Inverter::update() {
   }
 
   ESP_LOGD(LOGGING_TAG, "Sending query run info command to bus for inverter %x", this->device_address_);
-  const aa55_const::AA55Packet query_run_info_command = {
-      this->parent_bus_->get_controller_address(), this->device_address_, aa55_const::CONTROL_CODE::READ,
-      aa55_const::FUNCTION_CODE::QUERY_RUN_INFO, aa55_const::EMPTY_VECTOR};
+  const aa55_bus::AA55Packet query_run_info_command = {this->parent_bus_->get_controller_address(),
+                                                       this->device_address_, aa55_bus::CONTROL_CODE::READ,
+                                                       aa55_bus::FUNCTION_CODE::QUERY_RUN_INFO, aa55_bus::EMPTY_VECTOR};
   this->parent_bus_->queue_command(query_run_info_command);
 }
 
@@ -143,7 +143,7 @@ void AA55Inverter::parse_run_info_response(const std::vector<uint8_t> &payload) 
 
   // Save received values in the sensor attributes + publish state if applicable
   for (AA55InverterBaseSensor *sensor : this->sensors_) {
-    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
+    if (sensor->get_payload_source() == aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       sensor->process_response(payload);
     }
   }
@@ -164,13 +164,13 @@ void AA55Inverter::parse_id_info_response(const std::vector<uint8_t> &payload) {
 
   // Save received values in the sensor attributes
   for (AA55InverterBaseSensor *sensor : this->sensors_) {
-    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::ID_INFO_RESPONSE) {
+    if (sensor->get_payload_source() == aa55_bus::FUNCTION_CODE::ID_INFO_RESPONSE) {
       sensor->process_response(payload);
     }
   }
 }
 
-void AA55Inverter::parse_execute_response(aa55_const::FUNCTION_CODE function_code, uint8_t response) {
+void AA55Inverter::parse_execute_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) {
   for (AA55InverterBaseInput *input : this->inputs_) {
     if (input->get_response_function_code() == function_code) {
       ESP_LOGV(LOGGING_TAG, "Passing execute command response %x (payload %d) from inverter %x to input %s",
@@ -180,16 +180,16 @@ void AA55Inverter::parse_execute_response(aa55_const::FUNCTION_CODE function_cod
   }
 }
 
-void AA55Inverter::send_execute_command(aa55_const::FUNCTION_CODE function_code, uint8_t payload) {
+void AA55Inverter::send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload) {
   ESP_LOGD(LOGGING_TAG, "Sending execute command %x with payload %d to inverter %x", function_code, payload,
            this->device_address_);
   std::vector<uint8_t> payload_vector;
-  if (function_code == aa55_const::FUNCTION_CODE::ADJUST_POWER) {
+  if (function_code == aa55_bus::FUNCTION_CODE::ADJUST_POWER) {
     payload_vector.push_back(payload);
   }
 
-  const aa55_const::AA55Packet execute_command = {this->parent_bus_->get_controller_address(), this->device_address_,
-                                                  aa55_const::CONTROL_CODE::EXECUTE, function_code, payload_vector};
+  const aa55_bus::AA55Packet execute_command = {this->parent_bus_->get_controller_address(), this->device_address_,
+                                                aa55_bus::CONTROL_CODE::EXECUTE, function_code, payload_vector};
   this->parent_bus_->queue_command(execute_command);
 }
 
@@ -200,13 +200,13 @@ void AA55Inverter::handle_registration_request(const std::vector<uint8_t> &paylo
   // Send address confirm command to inverter
   std::vector<uint8_t> addr_confirm_payload(payload.begin(), payload.end());
   addr_confirm_payload.push_back(this->device_address_);
-  const aa55_const::AA55Packet address_confirm_command = {
-      this->parent_bus_->get_controller_address(), aa55_const::DEFAULT_INVERTER_ADDRESS,
-      aa55_const::CONTROL_CODE::REGISTER, aa55_const::FUNCTION_CODE::ALLOC_REG_ADDR, addr_confirm_payload};
+  const aa55_bus::AA55Packet address_confirm_command = {
+      this->parent_bus_->get_controller_address(), aa55_bus::DEFAULT_INVERTER_ADDRESS, aa55_bus::CONTROL_CODE::REGISTER,
+      aa55_bus::FUNCTION_CODE::ALLOC_REG_ADDR, addr_confirm_payload};
   this->parent_bus_->queue_command(address_confirm_command);
 }
 
-void AA55Inverter::queue_response_packet(const aa55_const::AA55Packet &packet) {
+void AA55Inverter::queue_response_packet(const aa55_bus::AA55Packet &packet) {
   this->response_packets_buffer_.push(packet);
 }
 
@@ -224,7 +224,7 @@ void AA55Inverter::handle_address_confirm(const std::vector<uint8_t> &payload) {
   this->inverter_online_ = true;
   this->parent_bus_->add_registered_inverter(this);
   for (AA55InverterBaseSensor *sensor : this->sensors_) {
-    if (sensor->get_payload_source() == aa55_const::FUNCTION_CODE::RUN_INFO_RESPONSE) {
+    if (sensor->get_payload_source() == aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       sensor->force_next_update();  // Force update for all sensors with run info response source so they update
                                     // immediately with correct values on the next received response
     }
@@ -232,9 +232,9 @@ void AA55Inverter::handle_address_confirm(const std::vector<uint8_t> &payload) {
 
   // Get serial & model info
   ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->device_address_);
-  const aa55_const::AA55Packet query_id_info_command = {
-      this->parent_bus_->get_controller_address(), this->device_address_, aa55_const::CONTROL_CODE::READ,
-      aa55_const::FUNCTION_CODE::QUERY_ID_INFO, aa55_const::EMPTY_VECTOR};
+  const aa55_bus::AA55Packet query_id_info_command = {this->parent_bus_->get_controller_address(),
+                                                      this->device_address_, aa55_bus::CONTROL_CODE::READ,
+                                                      aa55_bus::FUNCTION_CODE::QUERY_ID_INFO, aa55_bus::EMPTY_VECTOR};
   this->parent_bus_->queue_command(query_id_info_command);
 
   // Initialize inputs

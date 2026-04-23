@@ -27,7 +27,6 @@ from .. import (
     CONF_OFFLINE_HOLD,
     CONF_OFFLINE_VALUE,
     INVERTER_CHILD_SCHEMA,
-    aa55_const_ns,
     aa55_inverter_ns,
 )
 
@@ -57,7 +56,7 @@ CONF_SKIP_UPDATES = "skip_updates"
 AA55InverterSensor = aa55_inverter_ns.class_(
     "AA55InverterSensor", sensor.Sensor, cg.Component
 )
-SensorType = aa55_const_ns.enum("SENSOR_TYPE", is_class=True)
+SensorType = aa55_inverter_ns.enum("SENSOR_TYPE", is_class=True)
 
 CONFIG_SCHEMA = (
     cv.Schema(

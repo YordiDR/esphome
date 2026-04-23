@@ -9,7 +9,6 @@ from .. import (
     CONF_OFFLINE_VALUE,
     CONF_ONLINE_INITIAL_VALUE,
     INVERTER_CHILD_SCHEMA,
-    aa55_const_ns,
     aa55_inverter_ns,
 )
 
@@ -26,8 +25,8 @@ AA55InverterSwitch = aa55_inverter_ns.class_(
     "AA55InverterSwitch", switch.Switch, cg.Component
 )
 
-InputType = aa55_const_ns.enum("INPUT_TYPE", is_class=True)
-OnOff = aa55_const_ns.enum("ON_OFF", is_class=True)
+InputType = aa55_inverter_ns.enum("INPUT_TYPE", is_class=True)
+OnOff = aa55_inverter_ns.enum("ON_OFF", is_class=True)
 
 
 CONFIG_SCHEMA = (

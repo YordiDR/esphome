@@ -5,22 +5,22 @@ namespace esphome {
 namespace aa55_inverter {
 static const char *LOGGING_TAG = "aa55_sensor";
 
-AA55InverterBaseSensor::AA55InverterBaseSensor(std::string id, aa55_const::SENSOR_TYPE type, uint16_t skip_updates,
+AA55InverterBaseSensor::AA55InverterBaseSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
                                                bool offline_hold) {
   this->id_ = id;
   this->type_ = type;
   this->skip_updates_ = skip_updates;
   this->offline_hold_ = offline_hold;
-  this->payload_location_ = aa55_const::MAP_SENSOR_PAYLOAD_LOCATION.at(type);
-  this->payload_length_ = aa55_const::MAP_SENSOR_PAYLOAD_LENGTH.at(type);
-  this->payload_source_ = aa55_const::MAP_SENSOR_RESPONSE_SOURCE.at(type);
+  this->payload_location_ = aa55_inverter::MAP_SENSOR_PAYLOAD_LOCATION.at(type);
+  this->payload_length_ = aa55_inverter::MAP_SENSOR_PAYLOAD_LENGTH.at(type);
+  this->payload_source_ = aa55_inverter::MAP_SENSOR_RESPONSE_SOURCE.at(type);
 }
 
 std::string AA55InverterBaseSensor::get_id() { return this->id_; }
 
-aa55_const::SENSOR_TYPE AA55InverterBaseSensor::get_type() { return this->type_; }
+aa55_inverter::SENSOR_TYPE AA55InverterBaseSensor::get_type() { return this->type_; }
 
-aa55_const::FUNCTION_CODE AA55InverterBaseSensor::get_payload_source() { return this->payload_source_; }
+aa55_bus::FUNCTION_CODE AA55InverterBaseSensor::get_payload_source() { return this->payload_source_; }
 
 void AA55InverterBaseSensor::force_next_update() { this->force_next_update_ = true; }
 

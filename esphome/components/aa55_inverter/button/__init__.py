@@ -3,7 +3,7 @@ from esphome.components import button
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-from .. import CONF_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_const_ns, aa55_inverter_ns
+from .. import CONF_INVERTER_ID, INVERTER_CHILD_SCHEMA, aa55_inverter_ns
 
 DEPENDENCIES = ["aa55_inverter"]
 
@@ -12,7 +12,7 @@ CONF_RECONNECT_GRID = "reconnect_grid"
 AA55InverterButton = aa55_inverter_ns.class_(
     "AA55InverterButton", button.Button, cg.Component
 )
-InputType = aa55_const_ns.enum("INPUT_TYPE", is_class=True)
+InputType = aa55_inverter_ns.enum("INPUT_TYPE", is_class=True)
 
 CONFIG_SCHEMA = (
     cv.Schema(
