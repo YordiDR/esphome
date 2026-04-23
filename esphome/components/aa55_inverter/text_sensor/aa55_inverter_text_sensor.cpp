@@ -67,7 +67,7 @@ void AA55InverterTextSensor::parse_ascii_payload(const std::vector<uint8_t> &pay
 void AA55InverterTextSensor::parse_work_mode_payload(const std::vector<uint8_t> &payload) {
   uint32_t work_mode_code = this->parse_int(payload);
   if (work_mode_code > 2) {
-    this->publish_state("Unknown: " + std::to_string(work_mode_code));
+    this->publish_state("Unknown: " + str_sprintf("%d", work_mode_code));
   } else {
     this->publish_state(aa55_inverter::WORK_MODE_LIST[work_mode_code]);
   }
