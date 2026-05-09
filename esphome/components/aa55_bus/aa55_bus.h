@@ -32,6 +32,48 @@ class RingBuffer {
   size_t head_{0}, tail_{0}, size_{0};
 };
 
+// Ring queue implementation for outgoing commands. This allows us to queue commands to be sent without worrying about
+// dynamic memory allocation or overflow as much.
+template<typename T, size_t CAPACITY> class RingQueue {
+ public:
+  bool push(T item) {
+    if (full())
+      return false;
+    this->data_[this->head_] = item;
+    this->head_ = (this->head_ + 1) % CAPACITY;
+    this->size_++;
+    return true;
+  }
+
+  T &front() { return this->data_[this->tail_]; }
+  const T &front() const { return this->data_[this->tail_]; }
+
+  void pop() {
+    if (empty())
+      return;
+    this->tail_ = (this->tail_ + 1) % CAPACITY;
+    this->size_--;
+  }
+
+  void clear() { this->head_ = this->tail_ = this->size_ = 0; }
+
+  size_t size() const { return this->size_; }
+  bool empty() const { return this->size_ == 0; }
+  bool full() const { return this->size_ == CAPACITY; }
+
+  template<typename Predicate> bool contains_if(Predicate pred) const {
+    for (size_t i = 0; i < this->size_; i++) {
+      if (pred(this->data_[(this->tail_ + i) % CAPACITY]))
+        return true;
+    }
+    return false;
+  }
+
+ private:
+  T data_[CAPACITY]{};
+  size_t head_{0}, tail_{0}, size_{0};
+};
+
 class AA55Bus : public uart::UARTDevice, public Component {
  public:
   AA55Bus(std::string id, uint8_t controller_address);
@@ -39,8 +81,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void dump_config() override;
   void loop() override;
   void add_inverter(aa55_inverter::AA55Inverter *inverter);
-  void queue_command(aa55_bus::AA55Packet command);
-  uint8_t get_controller_address();
+  void queue_command(aa55_bus::AA55TXPacket command);
   std::string get_component_id();
   void add_registered_inverter(aa55_inverter::AA55Inverter *inverter);
   void remove_registered_inverter(aa55_inverter::AA55Inverter *inverter);
@@ -49,7 +90,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   // Internal variables
   uint8_t controller_address_;
   RingBuffer receive_buffer_;
-  std::deque<aa55_bus::AA55Packet> commands_to_send_;
+  RingQueue<aa55_bus::AA55TXPacket, aa55_bus::MAX_QUEUED_TX_COMMANDS> commands_to_send_;
   std::string id_;
   std::vector<aa55_inverter::AA55Inverter *> configured_inverters_;
   std::vector<aa55_inverter::AA55Inverter *>
@@ -60,9 +101,10 @@ class AA55Bus : public uart::UARTDevice, public Component {
       UINT32_MAX - aa55_bus::OFFLINE_QUERY_INTERVAL};  // Set to max - interval to allow sending immediately on startup
 
   // Functions
-  void send_packet(const aa55_bus::AA55Packet &command);  // Function that generates the packet and sends it via UART
-  void process_rx(const uint32_t &loop_start_time);       // Function that parses incoming data from UART and dispatches
-                                                          // directly to inverter objects
+  void send_packet(const aa55_bus::AA55TXPacket &command);  // Function that generates the packet and sends it via UART
+  void process_rx(const uint32_t &loop_start_time);  // Function that parses incoming data from UART and dispatches
+                                                     // directly to inverter objects
+  std::string create_hex_string(const uint8_t *data, size_t length);
   std::string create_hex_string(const RingBuffer &buffer);
   template<typename T> std::string create_hex_string(const T &data) {
     std::string result;

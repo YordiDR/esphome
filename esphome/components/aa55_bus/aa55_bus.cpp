@@ -50,9 +50,7 @@ void AA55Bus::setup() {}
 
 void AA55Bus::add_inverter(aa55_inverter::AA55Inverter *inverter) { this->configured_inverters_.push_back(inverter); }
 
-void AA55Bus::queue_command(aa55_bus::AA55Packet command) { this->commands_to_send_.push_back(command); }
-
-uint8_t AA55Bus::get_controller_address() { return this->controller_address_; }
+void AA55Bus::queue_command(aa55_bus::AA55TXPacket command) { this->commands_to_send_.push(command); }
 
 std::string AA55Bus::get_component_id() { return this->id_; }
 
@@ -84,18 +82,15 @@ void AA55Bus::loop() {
   if (this->configured_inverters_.size() > this->registered_inverters_.size() &&
       loop_start_time - this->last_offline_request_send_time_ >= aa55_bus::OFFLINE_QUERY_INTERVAL) {
     // Check if queue already contains an offline query command to avoid flooding
-    std::deque<aa55_bus::AA55Packet>::iterator find_packet_it = std::find_if(
-        this->commands_to_send_.begin(), this->commands_to_send_.end(), [](const aa55_bus::AA55Packet &packet) {
+    if (!this->commands_to_send_.contains_if([](const aa55_bus::AA55TXPacket &packet) {
           return packet.function_code == aa55_bus::FUNCTION_CODE::OFFLINE_QUERY;
-        });
-    if (find_packet_it == this->commands_to_send_.end()) {
+        })) {
       ESP_LOGD(
           LOGGING_TAG,
           "Queuing offline query command because there are unregistered inverters and the offline query interval of "
           "%dms has passed.",
           aa55_bus::OFFLINE_QUERY_INTERVAL);
-      aa55_bus::AA55Packet offline_query_command{};
-      offline_query_command.source_address = this->controller_address_;
+      aa55_bus::AA55TXPacket offline_query_command{};
       offline_query_command.destination_address = aa55_bus::DEFAULT_INVERTER_ADDRESS;
       offline_query_command.control_code = aa55_bus::CONTROL_CODE::REGISTER;
       offline_query_command.function_code = aa55_bus::FUNCTION_CODE::OFFLINE_QUERY;
@@ -113,26 +108,33 @@ void AA55Bus::loop() {
       this->last_offline_request_send_time_ = loop_start_time;
     }
 
-    this->commands_to_send_.pop_front();
+    this->commands_to_send_.pop();
     ESP_LOGV(LOGGING_TAG, "Remaining commands in queue for bus %s: %d", this->id_.c_str(),
              this->commands_to_send_.size());
   }
 }
 
-void AA55Bus::send_packet(const aa55_bus::AA55Packet &command) {
-  std::vector<uint8_t> packet = aa55_bus::HEADERS;  // Initialize message with AA55 header, then add command details
-  packet.push_back(command.source_address);
-  packet.push_back(command.destination_address);
-  packet.push_back((uint8_t) command.control_code);
-  packet.push_back((uint8_t) command.function_code);
-  packet.push_back(command.payload_length);
-  packet.insert(packet.end(), command.payload, command.payload + command.payload_length);
-  const uint16_t checksum = std::accumulate(packet.begin(), packet.end(), 0);
-  packet.push_back((uint8_t) (checksum >> 8));
-  packet.push_back((uint8_t) checksum);
+void AA55Bus::send_packet(const aa55_bus::AA55TXPacket &command) {
+  // Max packet = Allocate register address, payload 17 bytes + 9 bytes header/metadata = 26 bytes
+  uint8_t packet[26];
+  uint8_t length = 0;
+  packet[length++] = 0xAA;
+  packet[length++] = 0x55;
+  packet[length++] = this->controller_address_;
+  packet[length++] = command.destination_address;
+  packet[length++] = (uint8_t) command.control_code;
+  packet[length++] = (uint8_t) command.function_code;
+  packet[length++] = command.payload_length;
+  memcpy(packet + length, command.payload, command.payload_length);
+  length += command.payload_length;
+  uint16_t checksum = 0;
+  for (uint8_t i = 0; i < length; i++)
+    checksum += packet[i];
+  packet[length++] = (uint8_t) (checksum >> 8);
+  packet[length++] = (uint8_t) checksum;
 
-  ESP_LOGD(LOGGING_TAG, "Sending packet %s", this->create_hex_string(packet).c_str());
-  this->write_array(packet);  // Send packet over UART
+  ESP_LOGD(LOGGING_TAG, "Sending packet %s", this->create_hex_string(packet, length).c_str());
+  this->write_array(packet, length);  // Send packet over UART
 }
 
 void AA55Bus::process_rx(const uint32_t &loop_start_time) {
@@ -258,9 +260,8 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
     }
 
     // Parse received data into AA55 packet struct
-    aa55_bus::AA55Packet response_packet{};
+    aa55_bus::AA55RXPacket response_packet{};
     response_packet.source_address = this->receive_buffer_.peek(2);
-    response_packet.destination_address = this->receive_buffer_.peek(3);
     response_packet.control_code = static_cast<aa55_bus::CONTROL_CODE>(this->receive_buffer_.peek(4));
     response_packet.function_code = static_cast<aa55_bus::FUNCTION_CODE>(this->receive_buffer_.peek(5));
     response_packet.payload_length = this->receive_buffer_.peek(6);
@@ -320,6 +321,20 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
     packet_header_found = false;
     packet_size = UINT8_MAX;
   }
+}
+
+std::string AA55Bus::create_hex_string(const uint8_t *data, size_t length) {
+  std::string result;
+  result.reserve(length * 3);
+  const char *hex = "0123456789ABCDEF";
+  for (size_t i = 0; i < length; i++) {
+    result.push_back(hex[(data[i] >> 4) & 0xF]);
+    result.push_back(hex[data[i] & 0xF]);
+    result.push_back(' ');
+  }
+  if (!result.empty())
+    result.pop_back();
+  return result;
 }
 
 std::string AA55Bus::create_hex_string(const RingBuffer &buffer) {

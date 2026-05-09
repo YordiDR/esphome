@@ -5,15 +5,17 @@
 namespace esphome {
 namespace aa55_bus {
 static constexpr size_t READ_BATCH_SIZE = 64;
-static const uint16_t MAX_BUFFER_LENGTH = 512;  // Max characters for serial buffer, 150 bytes is the length of the
-                                                // response to the longest command (read running info list)
-static const uint8_t MAX_PAYLOAD_LENGTH = 150;  // Max payload length in bytes (longest response is read running info)
+static constexpr size_t MAX_QUEUED_TX_COMMANDS = 8;  // Max amount of commands that can be queued to send over UART
+static const uint16_t MAX_BUFFER_LENGTH = 512;       // Max characters for serial buffer, 150 bytes is the length of the
+                                                     // response to the longest command (read running info list)
+static const uint8_t MAX_RX_PAYLOAD_LENGTH =
+    150;  // Max RX payload length in bytes (longest response is read running info)
+static const uint8_t MAX_TX_PAYLOAD_LENGTH =
+    26;  // Max TX payload length in bytes (longest command is allocate register address)
 static const uint32_t OFFLINE_QUERY_INTERVAL =
     60000;  // Time interval in ms for sending offline query commands for unregistered inverters
 static const uint8_t DEFAULT_INVERTER_ADDRESS = 0x7F;
 static const uint16_t COMMAND_DELAY = 500;  // Min time between AA55 commands is 500 ms according to AA55 documentation
-
-static const std::vector<uint8_t> HEADERS = {0xAA, 0x55};
 
 enum class CONTROL_CODE : uint8_t { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
 enum class FUNCTION_CODE : uint8_t {
@@ -44,12 +46,19 @@ enum class FUNCTION_CODE : uint8_t {
   ADJUST_POWER_RESPONSE = 0x9E
 };
 
-struct AA55Packet {
+struct AA55RXPacket {
   uint8_t source_address{0};
+  CONTROL_CODE control_code{};
+  FUNCTION_CODE function_code{};
+  uint8_t payload[MAX_RX_PAYLOAD_LENGTH]{};
+  uint8_t payload_length{0};
+};
+
+struct AA55TXPacket {
   uint8_t destination_address{0};
   CONTROL_CODE control_code{};
   FUNCTION_CODE function_code{};
-  uint8_t payload[MAX_PAYLOAD_LENGTH]{};
+  uint8_t payload[MAX_TX_PAYLOAD_LENGTH]{};
   uint8_t payload_length{0};
 };
 }  // namespace aa55_bus
