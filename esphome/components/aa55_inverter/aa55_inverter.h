@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <queue>
 #include "esphome/core/component.h"
 #include "../aa55_bus/aa55_bus.h"
 #include "aa55_inverter_base_sensor.h"
@@ -22,7 +21,7 @@ class AA55Inverter : public PollingComponent {
   void add_input(AA55InverterBaseInput *input);
   uint8_t get_device_address();
   void set_parent_bus(aa55_bus::AA55Bus *bus);
-  void queue_response_packet(const aa55_bus::AA55Packet &packet);
+  void handle_packet(const aa55_bus::AA55Packet &packet);
   void send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload = 0);
   std::string get_serial_number();
 
@@ -33,28 +32,25 @@ class AA55Inverter : public PollingComponent {
   std::vector<AA55InverterBaseSensor *> sensors_;
   std::vector<AA55InverterBaseInput *> inputs_;
   bool inverter_online_{false};
-  bool received_packet_since_online_{false};
   aa55_bus::AA55Bus *parent_bus_{nullptr};
-  std::queue<aa55_bus::AA55Packet> response_packets_buffer_;
-  uint32_t last_packet_received_{0};
+  // Initialised to max-timeout so the offline check doesn't fire before the inverter has registered
+  uint32_t last_packet_received_{UINT32_MAX - aa55_inverter::INVERTER_OFFLINE_TIMEOUT};
 
   // Functions
-  void parse_run_info_response(
-      const std::vector<uint8_t> &payload);  // A method to parse the running info data read from the inverter
-  void parse_id_info_response(
-      const std::vector<uint8_t> &payload);  // A method to parse the ID info data read from the inverter
-  void parse_execute_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response);
-  void handle_registration_request(const std::vector<uint8_t> &payload);
-  void handle_address_confirm(const std::vector<uint8_t> &payload);
-  template<typename T> std::string create_hex_string(const T &data) {
+  void parse_run_info_response(const aa55_bus::AA55Packet &packet);
+  void parse_id_info_response(const aa55_bus::AA55Packet &packet);
+  void parse_execute_response(const aa55_bus::AA55Packet &packet);
+  void handle_registration_request(const aa55_bus::AA55Packet &packet);
+  void handle_address_confirm(const aa55_bus::AA55Packet &packet);
+  std::string create_hex_string(const uint8_t *data, size_t length) {
     std::string result;
-    result.reserve(data.size() * 3);
+    result.reserve(length * 3);
 
     const char *hex = "0123456789ABCDEF";
 
-    for (uint8_t byte : data) {
-      result.push_back(hex[(byte >> 4) & 0xF]);
-      result.push_back(hex[byte & 0xF]);
+    for (size_t i = 0; i < length; i++) {
+      result.push_back(hex[(data[i] >> 4) & 0xF]);
+      result.push_back(hex[data[i] & 0xF]);
       result.push_back(' ');
     }
 

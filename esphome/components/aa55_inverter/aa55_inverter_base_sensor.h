@@ -10,7 +10,7 @@ class AA55InverterBaseSensor {
   std::string get_id();
   aa55_inverter::SENSOR_TYPE get_type();
   aa55_bus::FUNCTION_CODE get_payload_source();
-  virtual void process_response(const std::vector<uint8_t> &payload) = 0;
+  virtual void process_response(const uint8_t *payload, uint8_t payload_length) = 0;
   virtual void handle_inverter_offline() = 0;
   void force_next_update();
 
@@ -25,7 +25,7 @@ class AA55InverterBaseSensor {
   bool offline_hold_{}, force_next_update_{false};
 
   bool time_to_update();
-  uint32_t parse_int(const std::vector<uint8_t> &payload);
+  uint32_t parse_int(const uint8_t *payload, uint8_t payload_length);
 };
 
 }  // namespace aa55_inverter

@@ -3,7 +3,7 @@
 
 namespace esphome {
 namespace aa55_inverter {
-static const char *LOGGING_TAG = "aa55_sensor";
+static constexpr const char *LOGGING_TAG = "aa55_sensor";
 
 AA55InverterBaseSensor::AA55InverterBaseSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
                                                bool offline_hold) {
@@ -28,19 +28,18 @@ bool AA55InverterBaseSensor::time_to_update() {
   return this->skipped_updates_ == this->skip_updates_ || this->force_next_update_;
 }
 
-uint32_t AA55InverterBaseSensor::parse_int(const std::vector<uint8_t> &payload) {
+uint32_t AA55InverterBaseSensor::parse_int(const uint8_t *payload, uint8_t payload_length) {
   uint32_t response = 0;
 
   // Safety check to prevent out-of-bounds crash
-  if (this->payload_location_ + this->payload_length_ > payload.size()) {
+  if (this->payload_location_ + this->payload_length_ > payload_length) {
     ESP_LOGE(LOGGING_TAG, "Buffer overflow in parse_int at index %d", this->payload_location_);
     return 0;
   }
 
-  for (size_t i = 0; i < this->payload_length_; i++) {
+  for (size_t i = 0; i < this->payload_length_; i++)
     // Shift left 8 bits for each byte to maintain Big-Endian order
-    response = (response << 8) | payload.at(this->payload_location_ + i);
-  }
+    response = (response << 8) | payload[this->payload_location_ + i];
 
   return response;
 }

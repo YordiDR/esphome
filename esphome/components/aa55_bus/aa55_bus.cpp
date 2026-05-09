@@ -10,7 +10,36 @@
 
 namespace esphome {
 namespace aa55_bus {
-static const char *LOGGING_TAG = "aa55_bus";
+static constexpr const char *LOGGING_TAG = "aa55_bus";
+
+bool RingBuffer::push(uint8_t byte) {
+  if (this->full())
+    return false;
+  this->data_[this->head_] = byte;
+  this->head_ = (this->head_ + 1) % this->CAPACITY;
+  this->size_++;
+  return true;
+}
+
+uint8_t RingBuffer::peek(size_t offset) const { return this->data_[(this->tail_ + offset) % this->CAPACITY]; }
+
+void RingBuffer::consume(size_t bytes_to_remove) {
+  bytes_to_remove = std::min(bytes_to_remove, this->size_);
+  this->tail_ = (this->tail_ + bytes_to_remove) % this->CAPACITY;
+  this->size_ -= bytes_to_remove;
+}
+
+void RingBuffer::clear() {
+  this->head_ = 0;
+  this->tail_ = 0;
+  this->size_ = 0;
+}
+
+size_t RingBuffer::size() const { return this->size_; }
+
+bool RingBuffer::empty() const { return this->size_ == 0; }
+
+bool RingBuffer::full() const { return this->size_ == this->CAPACITY; }
 
 AA55Bus::AA55Bus(std::string id, uint8_t controller_address) : uart::UARTDevice(), Component() {
   this->id_ = id;
@@ -19,6 +48,24 @@ AA55Bus::AA55Bus(std::string id, uint8_t controller_address) : uart::UARTDevice(
 
 void AA55Bus::setup() {}
 
+void AA55Bus::add_inverter(aa55_inverter::AA55Inverter *inverter) { this->configured_inverters_.push_back(inverter); }
+
+void AA55Bus::queue_command(aa55_bus::AA55Packet command) { this->commands_to_send_.push_back(command); }
+
+uint8_t AA55Bus::get_controller_address() { return this->controller_address_; }
+
+std::string AA55Bus::get_component_id() { return this->id_; }
+
+void AA55Bus::add_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
+  this->registered_inverters_.push_back(inverter);
+}
+
+void AA55Bus::remove_registered_inverter(aa55_inverter::AA55Inverter *inverter) {
+  this->registered_inverters_.erase(
+      std::remove(this->registered_inverters_.begin(), this->registered_inverters_.end(), inverter),
+      this->registered_inverters_.end());
+}
+
 void AA55Bus::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "Goodwe AA55 Bus component");
   ESP_LOGCONFIG(LOGGING_TAG, "  Bus ID: %s", this->id_.c_str());
@@ -26,39 +73,44 @@ void AA55Bus::dump_config() {
 }
 
 void AA55Bus::loop() {
+  const uint32_t loop_start_time = millis();
+
   // Process received data if applicable
   if (this->available()) {
-    this->process_rx();
+    this->process_rx(loop_start_time);
   }
 
   // Check if we need to send out an offline query (every 60s if a configured inverter is not yet registered)
   if (this->configured_inverters_.size() > this->registered_inverters_.size() &&
-      millis() - this->last_offline_request_send_time_ >= aa55_bus::OFFLINE_QUERY_INTERVAL) {
-    ESP_LOGD(LOGGING_TAG,
-             "Queuing offline query command because there are unregistered inverters and the offline query interval of "
-             "%dms has passed.",
-             aa55_bus::OFFLINE_QUERY_INTERVAL);
-    const aa55_bus::AA55Packet offline_query_command = {this->controller_address_, aa55_bus::DEFAULT_INVERTER_ADDRESS,
-                                                        aa55_bus::CONTROL_CODE::REGISTER,
-                                                        aa55_bus::FUNCTION_CODE::OFFLINE_QUERY, aa55_bus::EMPTY_VECTOR};
-
+      loop_start_time - this->last_offline_request_send_time_ >= aa55_bus::OFFLINE_QUERY_INTERVAL) {
     // Check if queue already contains an offline query command to avoid flooding
     std::deque<aa55_bus::AA55Packet>::iterator find_packet_it = std::find_if(
         this->commands_to_send_.begin(), this->commands_to_send_.end(), [](const aa55_bus::AA55Packet &packet) {
           return packet.function_code == aa55_bus::FUNCTION_CODE::OFFLINE_QUERY;
         });
     if (find_packet_it == this->commands_to_send_.end()) {
+      ESP_LOGD(
+          LOGGING_TAG,
+          "Queuing offline query command because there are unregistered inverters and the offline query interval of "
+          "%dms has passed.",
+          aa55_bus::OFFLINE_QUERY_INTERVAL);
+      aa55_bus::AA55Packet offline_query_command{};
+      offline_query_command.source_address = this->controller_address_;
+      offline_query_command.destination_address = aa55_bus::DEFAULT_INVERTER_ADDRESS;
+      offline_query_command.control_code = aa55_bus::CONTROL_CODE::REGISTER;
+      offline_query_command.function_code = aa55_bus::FUNCTION_CODE::OFFLINE_QUERY;
+      offline_query_command.payload_length = 0;
       this->queue_command(offline_query_command);
     }
   }
 
   // Send first queued packet if applicable, take into account 500ms delay (see AA55 doc) before last sent packet
-  if (!this->commands_to_send_.empty() && millis() - this->last_send_time_ >= aa55_bus::COMMAND_DELAY) {
+  if (!this->commands_to_send_.empty() && loop_start_time - this->last_send_time_ >= aa55_bus::COMMAND_DELAY) {
     this->send_packet(this->commands_to_send_.front());
 
-    this->last_send_time_ = millis();
+    this->last_send_time_ = loop_start_time;
     if (this->commands_to_send_.front().function_code == aa55_bus::FUNCTION_CODE::OFFLINE_QUERY) {
-      this->last_offline_request_send_time_ = this->last_send_time_;
+      this->last_offline_request_send_time_ = loop_start_time;
     }
 
     this->commands_to_send_.pop_front();
@@ -73,10 +125,8 @@ void AA55Bus::send_packet(const aa55_bus::AA55Packet &command) {
   packet.push_back(command.destination_address);
   packet.push_back((uint8_t) command.control_code);
   packet.push_back((uint8_t) command.function_code);
-  packet.push_back(command.payload.size());
-  if (command.payload != aa55_bus::EMPTY_VECTOR) {
-    packet.insert(packet.end(), command.payload.begin(), command.payload.end());
-  }
+  packet.push_back(command.payload_length);
+  packet.insert(packet.end(), command.payload, command.payload + command.payload_length);
   const uint16_t checksum = std::accumulate(packet.begin(), packet.end(), 0);
   packet.push_back((uint8_t) (checksum >> 8));
   packet.push_back((uint8_t) checksum);
@@ -85,46 +135,43 @@ void AA55Bus::send_packet(const aa55_bus::AA55Packet &command) {
   this->write_array(packet);  // Send packet over UART
 }
 
-void AA55Bus::process_rx() {
-  uint32_t start_time = millis();
+void AA55Bus::process_rx(const uint32_t &loop_start_time) {
   // Drop all RX buffer contents on buffer overload
-  if (this->receive_buffer_.size() >= aa55_bus::MAX_BUFFER_LENGTH) {
-    ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", this->create_hex_string(this->receive_buffer_));
+  if (this->receive_buffer_.full()) {
+    ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", this->create_hex_string(this->receive_buffer_).c_str());
     ESP_LOGW(LOGGING_TAG, "UART RX buffer for bus %s has filled up. Clearing buffer...", this->id_.c_str());
 
-    // Clear deque buffer used for processing
     this->receive_buffer_.clear();
 
-    // Clear UART buffer
+    // Drain UART hardware buffer
     uint8_t buf[64];
-    size_t avail;
-    while ((avail = this->available()) > 0 && millis() - start_time < 30) {  // Avoid blocking the thread for 30ms+
-      if (!this->read_array(buf, std::min(avail, sizeof(buf)))) {
+    while (this->available() > 0 && millis() - loop_start_time < 30) {
+      const size_t to_drain = std::min((size_t) this->available(), sizeof(buf));
+      if (!this->read_array(buf, to_drain))
         break;
-      }
     }
-
     return;
   }
 
-  const uint8_t buffer_max_size{64};
+  uint8_t read_buffer[READ_BATCH_SIZE];
+
   bool packet_header_found{false};
+  size_t packet_header_start_search_index{0};
   uint8_t packet_size{UINT8_MAX};
 
-  while (this->available() && this->receive_buffer_.size() < aa55_bus::MAX_BUFFER_LENGTH &&
-         millis() - start_time < 30) {  // Avoid blocking the thread for 30ms+
-    // Read all available bytes in batches to reduce UART call overhead.
-    const uint8_t avail = this->available();
-    const size_t to_read = std::min(avail, buffer_max_size);
-    uint8_t buffer_array[to_read];
+  while (this->available() && !this->receive_buffer_.full() &&
+         millis() - loop_start_time < 30) {  // Avoid blocking the thread for 30ms+
+    // Read available bytes in fixed-size batches to reduce UART call overhead
+    const size_t avail = (size_t) this->available();
+    const size_t to_read = std::min(avail, READ_BATCH_SIZE);
     ESP_LOGD(LOGGING_TAG, "%d bytes are available from UART, max buffer size is %d, reading %d bytes...", avail,
-             buffer_max_size, to_read);
-    if (!this->read_array(buffer_array, to_read)) {
+             READ_BATCH_SIZE, to_read);
+    if (!this->read_array(read_buffer, to_read))
       break;
-    }
 
-    // Add received bytes in the buffer array to the deque
-    this->receive_buffer_.insert(this->receive_buffer_.end(), buffer_array, buffer_array + sizeof(buffer_array));
+    for (size_t i = 0; i < to_read; i++)
+      this->receive_buffer_.push(read_buffer[i]);
+
     ESP_LOGV(LOGGING_TAG, "Updated receive_buffer_ contents: %s",
              this->create_hex_string(this->receive_buffer_).c_str());
 
@@ -132,23 +179,27 @@ void AA55Bus::process_rx() {
     if (!packet_header_found) {
       ESP_LOGV(LOGGING_TAG, "Looking for header in receive_buffer_...");
 
-      // Search returns the iterator pointing to the start of the header match
-      const auto find_header_it = std::search(this->receive_buffer_.begin(), this->receive_buffer_.end(),
-                                              aa55_bus::HEADERS.begin(), aa55_bus::HEADERS.end());
+      // Search for 0xAA 0x55 header by scanning ring buffer via peek()
+      size_t header_pos = SIZE_MAX;
+      for (size_t i = packet_header_start_search_index; i + 1 < this->receive_buffer_.size(); i++) {
+        if (this->receive_buffer_.peek(i) == 0xAA && this->receive_buffer_.peek(i + 1) == 0x55) {
+          header_pos = i;
+          break;
+        }
+      }
 
-      if (find_header_it == this->receive_buffer_.end()) {
+      if (header_pos == SIZE_MAX) {
         ESP_LOGV(LOGGING_TAG, "Could not find header in receive_buffer_ yet. Reading more data...");
+        packet_header_start_search_index = this->receive_buffer_.size() > 1 ? this->receive_buffer_.size() - 1 : 0;
         continue;
       }
 
-      ESP_LOGD(LOGGING_TAG, "Found header at receive_buffer_ index %d",
-               std::distance(this->receive_buffer_.begin(), find_header_it));
+      ESP_LOGD(LOGGING_TAG, "Found header at receive_buffer_ index %d", header_pos);
 
-      // Strip bytes received before the packet header
-      if (find_header_it != this->receive_buffer_.begin()) {
-        ESP_LOGV(LOGGING_TAG, "Stripping %d bytes before header from deque",
-                 std::distance(this->receive_buffer_.begin(), find_header_it));
-        this->receive_buffer_.erase(this->receive_buffer_.begin(), find_header_it);
+      // Discard bytes before the header
+      if (header_pos > 0) {
+        ESP_LOGV(LOGGING_TAG, "Stripping %d bytes before header from ring buffer", header_pos);
+        this->receive_buffer_.consume(header_pos);
         ESP_LOGV(LOGGING_TAG, "New receive_buffer_ contents: %s",
                  this->create_hex_string(this->receive_buffer_).c_str());
       }
@@ -156,19 +207,17 @@ void AA55Bus::process_rx() {
       packet_header_found = true;
     }
 
-    // Calculate packet size if it is still unknown
+    // Determine packet size once we have at least 7 bytes
     if (packet_size == UINT8_MAX) {
-      ESP_LOGV(LOGGING_TAG, "Checking if receive_buffer_ contains packet size byte...");
-
       if (this->receive_buffer_.size() < 7) {
         ESP_LOGV(LOGGING_TAG, "Could not find payload size in receive_buffer_ yet. Reading more data...");
         continue;
       }
 
-      ESP_LOGD(LOGGING_TAG, "Found payload size byte, value: %d..", this->receive_buffer_.at(6));
-      packet_size = 9 + this->receive_buffer_.at(6);  // Packet total size = AA55 header + source address + destination
-                                                      // address + control code + function code + payload size + CRC +
-                                                      // payload size. Everything except payload = 9 bytes
+      ESP_LOGD(LOGGING_TAG, "Found payload size byte, value: %d..", this->receive_buffer_.peek(6));
+      // Total = 2 (header) + 1 (source) + 1 (destination) + 1 (control code) + 1 (function code) + 1 (length) + payload
+      // + 2 (CRC) = 9 + payload
+      packet_size = 9 + this->receive_buffer_.peek(6);
     }
 
     // Check if packet is fully received
@@ -179,53 +228,65 @@ void AA55Bus::process_rx() {
 
     ESP_LOGD(LOGGING_TAG, "Packet of %d bytes was fully received from UART.", packet_size);
     ESP_LOGD(LOGGING_TAG, "Verifying received packet checksum...");
-    const uint16_t calculated_checksum =
-        std::accumulate(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size - 2, 0);
+
+    // Verify checksum by summing all bytes except the last 2 (= CRC)
+    uint16_t calculated_checksum = 0;
+    for (size_t i = 0; i < packet_size - 2; i++)
+      calculated_checksum += this->receive_buffer_.peek(i);
     const uint16_t received_checksum =
-        ((uint16_t) this->receive_buffer_.at(packet_size - 2) << 8) | this->receive_buffer_.at(packet_size - 1);
+        ((uint16_t) this->receive_buffer_.peek(packet_size - 2) << 8) | this->receive_buffer_.peek(packet_size - 1);
 
     if (received_checksum != calculated_checksum) {
       ESP_LOGW(LOGGING_TAG,
                "Packet has an incorrect checksum, received checksum %d, calculated checksum %d. Discarding...",
                received_checksum, calculated_checksum);
-      this->receive_buffer_.erase(
-          this->receive_buffer_.begin(),
-          this->receive_buffer_.begin() +
-              2);  // By removing the header, we're ignoring all data until the next packet header
+      // Skip past the header so the next search finds the next valid header
+      this->receive_buffer_.consume(2);
       packet_header_found = false;
+      packet_header_start_search_index = 0;
       packet_size = UINT8_MAX;
       continue;
     }
 
     // Check if the packet is destined for this controller
-    if (this->receive_buffer_.at(3) != this->controller_address_) {
-      ESP_LOGV(LOGGING_TAG, "Received packet for another device (%x). Discarding...", this->receive_buffer_.at(3));
-      this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
+    if (this->receive_buffer_.peek(3) != this->controller_address_) {
+      ESP_LOGV(LOGGING_TAG, "Received packet for another device (%x). Discarding...", this->receive_buffer_.peek(3));
+      this->receive_buffer_.consume(packet_size);
       packet_header_found = false;
       packet_size = UINT8_MAX;
       continue;
     }
 
+    // Parse received data into AA55 packet struct
+    aa55_bus::AA55Packet response_packet{};
+    response_packet.source_address = this->receive_buffer_.peek(2);
+    response_packet.destination_address = this->receive_buffer_.peek(3);
+    response_packet.control_code = static_cast<aa55_bus::CONTROL_CODE>(this->receive_buffer_.peek(4));
+    response_packet.function_code = static_cast<aa55_bus::FUNCTION_CODE>(this->receive_buffer_.peek(5));
+    response_packet.payload_length = this->receive_buffer_.peek(6);
+    for (uint8_t i = 0; i < response_packet.payload_length; i++)
+      response_packet.payload[i] = this->receive_buffer_.peek(7 + i);
+
     std::vector<aa55_inverter::AA55Inverter *>::iterator find_inverter_it;
-    if (this->receive_buffer_.at(4) == (uint8_t) aa55_bus::CONTROL_CODE::REGISTER &&
-        this->receive_buffer_.at(5) == (uint8_t) aa55_bus::FUNCTION_CODE::REG_REQUEST) {
-      // Pass register request to correct inverter object
-      std::string discovered_serial_number(this->receive_buffer_.begin() + 7,
-                                           this->receive_buffer_.begin() + packet_size - 2);
+    if (response_packet.control_code == aa55_bus::CONTROL_CODE::REGISTER &&
+        response_packet.function_code == aa55_bus::FUNCTION_CODE::REG_REQUEST) {
+      // Registration request: match by serial number embedded in payload
+      std::string discovered_serial_number(response_packet.payload,
+                                           response_packet.payload + response_packet.payload_length);
 
       ESP_LOGD(LOGGING_TAG,
                "Received register request from inverter with serial number %s. Looking for configured inverter...",
                discovered_serial_number.c_str());
 
       find_inverter_it = std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
-                                      [discovered_serial_number](aa55_inverter::AA55Inverter *inverter) {
+                                      [&discovered_serial_number](aa55_inverter::AA55Inverter *inverter) {
                                         return inverter->get_serial_number() == discovered_serial_number;
                                       });
 
       if (find_inverter_it == this->configured_inverters_.end()) {
         ESP_LOGW(LOGGING_TAG, "Could not find a configured inverter with serial number %s. Discarding...",
                  discovered_serial_number.c_str());
-        this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
+        this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
         packet_size = UINT8_MAX;
         continue;
@@ -234,8 +295,8 @@ void AA55Bus::process_rx() {
       ESP_LOGD(LOGGING_TAG, "Received register request from a configured inverter with serial number %s.",
                discovered_serial_number.c_str());
     } else {
-      // Send inverter info responses to the applicable inverter object
-      uint8_t packet_source_address = this->receive_buffer_.at(2);
+      // All other packets: match by source address
+      uint8_t packet_source_address = response_packet.source_address;
       find_inverter_it = std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
                                       [packet_source_address](aa55_inverter::AA55Inverter *inverter) {
                                         return inverter->get_device_address() == packet_source_address;
@@ -243,7 +304,7 @@ void AA55Bus::process_rx() {
       if (find_inverter_it == this->configured_inverters_.end()) {
         ESP_LOGD(LOGGING_TAG, "Received packet from an unregistered inverter (%x). Discarding...",
                  packet_source_address);
-        this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
+        this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
         packet_size = UINT8_MAX;
         continue;
@@ -252,19 +313,29 @@ void AA55Bus::process_rx() {
       ESP_LOGD(LOGGING_TAG, "Received packet from a registered inverter (%x).", packet_source_address);
     }
 
-    // Pass packet to inverter object
-    const std::vector<uint8_t> received_payload(this->receive_buffer_.begin() + 7,
-                                                this->receive_buffer_.begin() + packet_size - 2);
-    const aa55_bus::AA55Packet response_packet = {this->receive_buffer_.at(2), this->receive_buffer_.at(3),
-                                                  static_cast<aa55_bus::CONTROL_CODE>(this->receive_buffer_.at(4)),
-                                                  static_cast<aa55_bus::FUNCTION_CODE>(this->receive_buffer_.at(5)),
-                                                  received_payload};
-    (*find_inverter_it)->queue_response_packet(response_packet);
+    // Dispatch to inverter
+    (*find_inverter_it)->handle_packet(response_packet);
 
-    this->receive_buffer_.erase(this->receive_buffer_.begin(), this->receive_buffer_.begin() + packet_size);
+    this->receive_buffer_.consume(packet_size);
     packet_header_found = false;
     packet_size = UINT8_MAX;
   }
 }
+
+std::string AA55Bus::create_hex_string(const RingBuffer &buffer) {
+  std::string result;
+  result.reserve(buffer.size() * 3);
+  const char *hex = "0123456789ABCDEF";
+  for (size_t i = 0; i < buffer.size(); i++) {
+    uint8_t byte = buffer.peek(i);
+    result.push_back(hex[(byte >> 4) & 0xF]);
+    result.push_back(hex[byte & 0xF]);
+    result.push_back(' ');
+  }
+  if (!result.empty())
+    result.pop_back();
+  return result;
+}
+
 }  // namespace aa55_bus
 }  // namespace esphome

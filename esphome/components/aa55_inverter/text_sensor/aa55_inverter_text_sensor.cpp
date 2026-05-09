@@ -3,7 +3,7 @@
 
 namespace esphome {
 namespace aa55_inverter {
-static const char *LOGGING_TAG = "aa55_sensor";
+static constexpr const char *LOGGING_TAG = "aa55_sensor";
 
 AA55InverterTextSensor::AA55InverterTextSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
                                                bool offline_hold, std::string offline_value)
@@ -11,31 +11,29 @@ AA55InverterTextSensor::AA55InverterTextSensor(std::string id, aa55_inverter::SE
   this->offline_value_ = offline_value;
 }
 
-void AA55InverterTextSensor::process_response(const std::vector<uint8_t> &payload) {
+void AA55InverterTextSensor::process_response(const uint8_t *payload, uint8_t payload_length) {
   ESP_LOGV(LOGGING_TAG, "Checking if it's time to update text sensor %s: %s", this->id_.c_str(),
            this->time_to_update() ? "yes" : "no");
 
   if (this->time_to_update()) {
-    ESP_LOGV(LOGGING_TAG, "Parsing text sensor%s from payload[%d], length %d bytes.", this->id_.c_str(),
+    ESP_LOGV(LOGGING_TAG, "Parsing text sensor %s from payload[%d], length %d bytes.", this->id_.c_str(),
              this->payload_location_, this->payload_length_);
     switch (this->type_) {
       case aa55_inverter::SENSOR_TYPE::WORK_MODE:
-        this->parse_work_mode_payload(payload);
+        this->parse_work_mode_payload(payload, payload_length);
         break;
       case aa55_inverter::SENSOR_TYPE::ERROR_CODES:
-        this->parse_error_codes_payload(payload);
+        this->parse_error_codes_payload(payload, payload_length);
         break;
       default:
-        this->parse_ascii_payload(payload);
+        this->parse_ascii_payload(payload, payload_length);
     }
 
-    if (this->skip_updates_ != 0) {  // Reset skipped updates counter since we just updated
+    if (this->skip_updates_ != 0)  // Reset skipped updates counter since we just updated
       this->skipped_updates_ = 0;
-    }
 
-    if (this->force_next_update_) {  // Reset force next update flag since we just updated
+    if (this->force_next_update_)  // Reset force next update flag since we just updated
       this->force_next_update_ = false;
-    }
   } else {
     this->skipped_updates_++;  // Increment skipped updates counter since we skipped an update
   }
@@ -59,13 +57,13 @@ void AA55InverterTextSensor::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "  Payload length: %d", this->payload_length_);
 }
 
-void AA55InverterTextSensor::parse_ascii_payload(const std::vector<uint8_t> &payload) {
-  this->publish_state(std::string(payload.begin() + this->payload_location_,
-                                  payload.begin() + this->payload_location_ + this->payload_length_));
+void AA55InverterTextSensor::parse_ascii_payload(const uint8_t *payload, uint8_t payload_length) {
+  this->publish_state(
+      std::string(reinterpret_cast<const char *>(payload + this->payload_location_), this->payload_length_));
 }
 
-void AA55InverterTextSensor::parse_work_mode_payload(const std::vector<uint8_t> &payload) {
-  uint32_t work_mode_code = this->parse_int(payload);
+void AA55InverterTextSensor::parse_work_mode_payload(const uint8_t *payload, uint8_t payload_length) {
+  uint32_t work_mode_code = this->parse_int(payload, payload_length);
   if (work_mode_code > 2) {
     char buffer[32];
     snprintf(buffer, sizeof(buffer), "Unknown: %d",
@@ -76,15 +74,14 @@ void AA55InverterTextSensor::parse_work_mode_payload(const std::vector<uint8_t> 
   }
 }
 
-void AA55InverterTextSensor::parse_error_codes_payload(const std::vector<uint8_t> &payload) {
-  uint32_t error_codes_code = this->parse_int(payload);
+void AA55InverterTextSensor::parse_error_codes_payload(const uint8_t *payload, uint8_t payload_length) {
+  uint32_t error_codes_code = this->parse_int(payload, payload_length);
   if (error_codes_code) {
-    std::string error_codes_string = "";
+    std::string error_codes_string;
     for (uint8_t i = 0; i < 32; ++i) {
       if (error_codes_code & (1 << i)) {
-        if (!error_codes_string.empty()) {
+        if (!error_codes_string.empty())
           error_codes_string += ", ";
-        }
         error_codes_string += aa55_inverter::ERROR_CODE_LIST[i];
       }
     }

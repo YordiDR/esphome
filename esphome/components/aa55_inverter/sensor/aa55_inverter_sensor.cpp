@@ -3,7 +3,7 @@
 
 namespace esphome {
 namespace aa55_inverter {
-static const char *LOGGING_TAG = "aa55_sensor";
+static constexpr const char *LOGGING_TAG = "aa55_sensor";
 
 AA55InverterSensor::AA55InverterSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
                                        bool offline_hold, float offline_value)
@@ -11,23 +11,21 @@ AA55InverterSensor::AA55InverterSensor(std::string id, aa55_inverter::SENSOR_TYP
   this->offline_value_ = offline_value;
 }
 
-void AA55InverterSensor::process_response(const std::vector<uint8_t> &payload) {
+void AA55InverterSensor::process_response(const uint8_t *payload, uint8_t payload_length) {
   ESP_LOGV(LOGGING_TAG, "Checking if it's time to update sensor %s: %s", this->id_.c_str(),
            this->time_to_update() ? "yes" : "no");
 
   if (this->time_to_update()) {
     ESP_LOGV(LOGGING_TAG, "Parsing sensor %s from payload[%d], length %d bytes.", this->id_.c_str(),
              this->payload_location_, this->payload_length_);
-    this->publish_state(this->parse_int(payload) /
+    this->publish_state(this->parse_int(payload, payload_length) /
                         std::pow(10.0, (float) this->get_accuracy_decimals()));  // Apply decimal precision
 
-    if (this->skip_updates_ != 0) {  // Reset skipped updates counter since we just updated
+    if (this->skip_updates_ != 0)  // Reset skipped updates counter since we just updated
       this->skipped_updates_ = 0;
-    }
 
-    if (this->force_next_update_) {  // Reset force next update flag since we just updated
+    if (this->force_next_update_)  // Reset force next update flag since we just updated
       this->force_next_update_ = false;
-    }
   } else {
     this->skipped_updates_++;  // Increment skipped updates counter since we skipped an update
   }
