@@ -1,13 +1,15 @@
 #pragma once
 #include "const.h"
+#include <string>
 
 namespace esphome {
 namespace aa55_inverter {
 
 class AA55InverterBaseSensor {
  public:
-  AA55InverterBaseSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates, bool offline_hold);
-  std::string get_id();
+  AA55InverterBaseSensor(const std::string &id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
+                         bool offline_hold);
+  const std::string &get_id();
   aa55_inverter::SENSOR_TYPE get_type();
   aa55_bus::FUNCTION_CODE get_payload_source();
   virtual void process_response(const uint8_t *payload, uint8_t payload_length) = 0;

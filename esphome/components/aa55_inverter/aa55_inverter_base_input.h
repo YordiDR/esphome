@@ -9,10 +9,10 @@ class AA55Inverter;  // Forward declaration of AA55Inverter class to avoid circu
 
 class AA55InverterBaseInput {
  public:
-  AA55InverterBaseInput(std::string id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter,
+  AA55InverterBaseInput(const std::string &id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter,
                         bool offline_hold);
   aa55_inverter::INPUT_TYPE get_type();
-  std::string get_id();
+  const std::string &get_id();
   virtual bool handles_response(aa55_bus::FUNCTION_CODE function_code) = 0;
   virtual void handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) = 0;
   virtual void handle_inverter_offline() = 0;
