@@ -9,8 +9,8 @@ namespace aa55_inverter {
 
 class AA55InverterNumber : public AA55InverterBaseInput, public number::Number, public Component {
  public:
-  AA55InverterNumber(std::string id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter, bool offline_hold,
-                     float offline_value, float online_initial_value);
+  AA55InverterNumber(const std::string &id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter,
+                     bool offline_hold, float offline_value, float online_initial_value);
   void setup() override;
   void dump_config() override;
   void control(float value);

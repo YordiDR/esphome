@@ -12,7 +12,7 @@ namespace aa55_inverter {
 
 class AA55Inverter : public PollingComponent {
  public:
-  AA55Inverter(std::string serial_number, uint8_t device_address);
+  AA55Inverter(const std::string &serial_number, uint8_t device_address);
   void setup() override;
   void dump_config() override;
   void loop() override;

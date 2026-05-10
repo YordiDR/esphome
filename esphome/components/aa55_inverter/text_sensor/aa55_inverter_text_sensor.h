@@ -8,8 +8,8 @@ namespace esphome {
 namespace aa55_inverter {
 class AA55InverterTextSensor : public AA55InverterBaseSensor, public text_sensor::TextSensor, public Component {
  public:
-  AA55InverterTextSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates, bool offline_hold,
-                         std::string offline_value);
+  AA55InverterTextSensor(const std::string &id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
+                         bool offline_hold, const std::string &offline_value);
   void process_response(const uint8_t *payload, uint8_t payload_length) override;
   void handle_inverter_offline() override;
   void dump_config() override;

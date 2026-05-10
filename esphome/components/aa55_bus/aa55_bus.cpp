@@ -267,13 +267,13 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       ESP_LOGD(LOGGING_TAG,
                "Received register request from inverter with serial number %.*s. Looking for configured inverter...",
                response_packet.payload_length, reinterpret_cast<const char *>(response_packet.payload));
-      find_inverter_it =
-          std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
-                       [&](aa55_inverter::AA55Inverter *inverter) {
-                         return response_packet.payload_length == inverter->get_serial_number().size() &&
-                                strncmp(reinterpret_cast<const char *>(response_packet.payload),
-                                        inverter->get_serial_number().c_str(), response_packet.payload_length) == 0;
-                       });
+      find_inverter_it = std::find_if(this->configured_inverters_.begin(), this->configured_inverters_.end(),
+                                      [&](aa55_inverter::AA55Inverter *inverter) {
+                                        const std::string &serial_number = inverter->get_serial_number();
+                                        return response_packet.payload_length == serial_number.size() &&
+                                               strncmp(reinterpret_cast<const char *>(response_packet.payload),
+                                                       serial_number.c_str(), response_packet.payload_length) == 0;
+                                      });
 
       if (find_inverter_it == this->configured_inverters_.end()) {
         ESP_LOGW(LOGGING_TAG, "Could not find a configured inverter with serial number %.*s. Discarding...",

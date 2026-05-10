@@ -5,7 +5,7 @@ namespace esphome {
 namespace aa55_inverter {
 static constexpr const char *LOGGING_TAG = "aa55_sensor";
 
-AA55InverterSensor::AA55InverterSensor(std::string id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
+AA55InverterSensor::AA55InverterSensor(const std::string &id, aa55_inverter::SENSOR_TYPE type, uint16_t skip_updates,
                                        bool offline_hold, float offline_value)
     : AA55InverterBaseSensor(id, type, skip_updates, offline_hold), sensor::Sensor(), Component() {
   this->offline_value_ = offline_value;

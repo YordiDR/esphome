@@ -6,7 +6,8 @@ namespace esphome {
 namespace aa55_inverter {
 static const char *LOGGING_TAG = "aa55_input";
 
-AA55InverterButton::AA55InverterButton(std::string id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter)
+AA55InverterButton::AA55InverterButton(const std::string &id, aa55_inverter::INPUT_TYPE type,
+                                       AA55Inverter *parent_inverter)
     : AA55InverterBaseInput(id, type, parent_inverter, false), button::Button(), Component() {}
 
 void AA55InverterButton::dump_config() {

@@ -9,7 +9,7 @@ namespace aa55_inverter {
 
 static constexpr const char *LOGGING_TAG = "aa55_inverter";
 
-AA55Inverter::AA55Inverter(std::string serial_number, uint8_t device_address) : PollingComponent() {
+AA55Inverter::AA55Inverter(const std::string &serial_number, uint8_t device_address) : PollingComponent() {
   this->serial_number_ = serial_number;
   this->device_address_ = device_address;
 }

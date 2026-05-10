@@ -6,9 +6,9 @@ namespace esphome {
 namespace aa55_inverter {
 static const char *LOGGING_TAG = "aa55_input";
 
-AA55InverterSwitch::AA55InverterSwitch(std::string id, aa55_inverter::INPUT_TYPE type, AA55Inverter *parent_inverter,
-                                       bool offline_hold, aa55_inverter::ON_OFF offline_value,
-                                       aa55_inverter::ON_OFF online_initial_value)
+AA55InverterSwitch::AA55InverterSwitch(const std::string &id, aa55_inverter::INPUT_TYPE type,
+                                       AA55Inverter *parent_inverter, bool offline_hold,
+                                       aa55_inverter::ON_OFF offline_value, aa55_inverter::ON_OFF online_initial_value)
     : AA55InverterBaseInput(id, type, parent_inverter, offline_hold), switch_::Switch(), Component() {
   this->offline_value_ = offline_value;
   this->online_initial_value_ = online_initial_value;
