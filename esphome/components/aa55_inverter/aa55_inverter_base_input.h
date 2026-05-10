@@ -1,5 +1,6 @@
 #pragma once
 #include "const.h"
+#include <string>
 
 namespace esphome {
 namespace aa55_inverter {

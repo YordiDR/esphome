@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <deque>
 #include <algorithm>
 #include "esphome/core/component.h"
 #include "../uart/uart.h"

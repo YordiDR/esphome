@@ -1,9 +1,5 @@
-#include <deque>
-#include <iterator>
-#include <cmath>
 #include <algorithm>
 #include <climits>
-#include <numeric>
 #include "esphome/core/log.h"
 #include "aa55_bus.h"
 #include "../aa55_inverter/aa55_inverter.h"

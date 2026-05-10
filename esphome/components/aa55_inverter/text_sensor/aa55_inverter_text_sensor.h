@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include <vector>
 #include "esphome/core/component.h"
 #include "../../text_sensor/text_sensor.h"
 #include "../aa55_inverter_base_sensor.h"

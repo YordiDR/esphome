@@ -2,7 +2,6 @@
 
 namespace esphome {
 namespace aa55_inverter {
-static const char *LOGGING_TAG = "aa55_input";
 
 AA55InverterBaseInput::AA55InverterBaseInput(std::string id, aa55_inverter::INPUT_TYPE type,
                                              AA55Inverter *parent_inverter, bool offline_hold) {
