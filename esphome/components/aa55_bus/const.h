@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <vector>
+#include <cstring>
 
 namespace esphome {
 namespace aa55_bus {
@@ -62,5 +62,67 @@ struct AA55TXPacket {
   uint8_t payload[MAX_TX_PAYLOAD_LENGTH]{};
   uint8_t payload_length{0};
 };
+
+inline AA55TXPacket make_offline_query_packet() {
+  AA55TXPacket packet{};
+  packet.destination_address = DEFAULT_INVERTER_ADDRESS;
+  packet.control_code = CONTROL_CODE::REGISTER;
+  packet.function_code = FUNCTION_CODE::OFFLINE_QUERY;
+  packet.payload_length = 0;
+  return packet;
+}
+
+inline AA55TXPacket make_remove_register_packet(uint8_t device_address) {
+  AA55TXPacket packet{};
+  packet.destination_address = device_address;
+  packet.control_code = CONTROL_CODE::REGISTER;
+  packet.function_code = FUNCTION_CODE::REMOVE_REG;
+  packet.payload_length = 0;
+  return packet;
+}
+
+inline AA55TXPacket make_alloc_reg_addr_packet(const uint8_t *reg_request_payload, uint8_t reg_request_length,
+                                               uint8_t device_address) {
+  AA55TXPacket packet{};
+  packet.destination_address = DEFAULT_INVERTER_ADDRESS;
+  packet.control_code = CONTROL_CODE::REGISTER;
+  packet.function_code = FUNCTION_CODE::ALLOC_REG_ADDR;
+  memcpy(packet.payload, reg_request_payload, reg_request_length);
+  packet.payload[reg_request_length] = device_address;
+  packet.payload_length = reg_request_length + 1;
+  return packet;
+}
+
+inline AA55TXPacket make_query_run_info_packet(uint8_t device_address) {
+  AA55TXPacket packet{};
+  packet.destination_address = device_address;
+  packet.control_code = CONTROL_CODE::READ;
+  packet.function_code = FUNCTION_CODE::QUERY_RUN_INFO;
+  packet.payload_length = 0;
+  return packet;
+}
+
+inline AA55TXPacket make_query_id_info_packet(uint8_t device_address) {
+  AA55TXPacket packet{};
+  packet.destination_address = device_address;
+  packet.control_code = CONTROL_CODE::READ;
+  packet.function_code = FUNCTION_CODE::QUERY_ID_INFO;
+  packet.payload_length = 0;
+  return packet;
+}
+
+inline AA55TXPacket make_execute_packet(uint8_t device_address, FUNCTION_CODE function_code, uint8_t payload = 0) {
+  AA55TXPacket packet{};
+  packet.destination_address = device_address;
+  packet.control_code = CONTROL_CODE::EXECUTE;
+  packet.function_code = function_code;
+
+  // Only ADJUST_POWER carries a payload byte
+  if (function_code == FUNCTION_CODE::ADJUST_POWER) {
+    packet.payload[0] = payload;
+    packet.payload_length = 1;
+  }
+  return packet;
+}
 }  // namespace aa55_bus
 }  // namespace esphome

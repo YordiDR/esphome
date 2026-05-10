@@ -22,12 +22,7 @@ void AA55Inverter::setup() {
 
   // Send deregister command to inverter at ESP startup so we can register it again
   ESP_LOGD(LOGGING_TAG, "Sending remove register command for inverter %x", this->device_address_);
-  aa55_bus::AA55TXPacket remove_register_command{};
-  remove_register_command.destination_address = this->device_address_;
-  remove_register_command.control_code = aa55_bus::CONTROL_CODE::REGISTER;
-  remove_register_command.function_code = aa55_bus::FUNCTION_CODE::REMOVE_REG;
-  remove_register_command.payload_length = 0;
-  this->parent_bus_->queue_command(remove_register_command);
+  this->parent_bus_->queue_command(aa55_bus::make_remove_register_packet(this->device_address_));
 }
 
 void AA55Inverter::dump_config() {
@@ -65,12 +60,7 @@ void AA55Inverter::update() {
   }
 
   ESP_LOGD(LOGGING_TAG, "Sending query run info command to bus for inverter %x", this->device_address_);
-  aa55_bus::AA55TXPacket query_run_info_command{};
-  query_run_info_command.destination_address = this->device_address_;
-  query_run_info_command.control_code = aa55_bus::CONTROL_CODE::READ;
-  query_run_info_command.function_code = aa55_bus::FUNCTION_CODE::QUERY_RUN_INFO;
-  query_run_info_command.payload_length = 0;
-  this->parent_bus_->queue_command(query_run_info_command);
+  this->parent_bus_->queue_command(aa55_bus::make_query_run_info_packet(this->device_address_));
 }
 
 void AA55Inverter::add_sensor(AA55InverterBaseSensor *sensor) { this->sensors_.push_back(sensor); }
@@ -185,17 +175,7 @@ void AA55Inverter::parse_execute_response(const aa55_bus::AA55RXPacket &packet) 
 void AA55Inverter::send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload) {
   ESP_LOGD(LOGGING_TAG, "Sending execute command %x with payload %d to inverter %x", function_code, payload,
            this->device_address_);
-  aa55_bus::AA55TXPacket execute_command{};
-  execute_command.destination_address = this->device_address_;
-  execute_command.control_code = aa55_bus::CONTROL_CODE::EXECUTE;
-  execute_command.function_code = function_code;
-  if (function_code == aa55_bus::FUNCTION_CODE::ADJUST_POWER) {
-    execute_command.payload[0] = payload;
-    execute_command.payload_length = 1;
-  } else {
-    execute_command.payload_length = 0;
-  }
-  this->parent_bus_->queue_command(execute_command);
+  this->parent_bus_->queue_command(aa55_bus::make_execute_packet(this->device_address_, function_code, payload));
 }
 
 void AA55Inverter::handle_registration_request(const aa55_bus::AA55RXPacket &packet) {
@@ -203,14 +183,8 @@ void AA55Inverter::handle_registration_request(const aa55_bus::AA55RXPacket &pac
            this->serial_number_.c_str());
 
   // Send address confirm command to inverter
-  aa55_bus::AA55TXPacket address_confirm_command{};
-  address_confirm_command.destination_address = aa55_bus::DEFAULT_INVERTER_ADDRESS;
-  address_confirm_command.control_code = aa55_bus::CONTROL_CODE::REGISTER;
-  address_confirm_command.function_code = aa55_bus::FUNCTION_CODE::ALLOC_REG_ADDR;
-  memcpy(address_confirm_command.payload, packet.payload, packet.payload_length);
-  address_confirm_command.payload[packet.payload_length] = this->device_address_;
-  address_confirm_command.payload_length = packet.payload_length + 1;
-  this->parent_bus_->queue_command(address_confirm_command);
+  this->parent_bus_->queue_command(
+      aa55_bus::make_alloc_reg_addr_packet(packet.payload, packet.payload_length, this->device_address_));
 }
 
 uint8_t AA55Inverter::get_device_address() { return this->device_address_; }
@@ -234,12 +208,7 @@ void AA55Inverter::handle_address_confirm(const aa55_bus::AA55RXPacket &packet) 
 
   // Get serial & model info
   ESP_LOGD(LOGGING_TAG, "Sending query id info command to bus for inverter %x", this->device_address_);
-  aa55_bus::AA55TXPacket query_id_info_command{};
-  query_id_info_command.destination_address = this->device_address_;
-  query_id_info_command.control_code = aa55_bus::CONTROL_CODE::READ;
-  query_id_info_command.function_code = aa55_bus::FUNCTION_CODE::QUERY_ID_INFO;
-  query_id_info_command.payload_length = 0;
-  this->parent_bus_->queue_command(query_id_info_command);
+  this->parent_bus_->queue_command(aa55_bus::make_query_id_info_packet(this->device_address_));
 
   // Initialize inputs
   for (AA55InverterBaseInput *input : this->inputs_)

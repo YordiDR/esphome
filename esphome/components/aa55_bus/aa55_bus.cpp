@@ -90,12 +90,7 @@ void AA55Bus::loop() {
           "Queuing offline query command because there are unregistered inverters and the offline query interval of "
           "%dms has passed.",
           aa55_bus::OFFLINE_QUERY_INTERVAL);
-      aa55_bus::AA55TXPacket offline_query_command{};
-      offline_query_command.destination_address = aa55_bus::DEFAULT_INVERTER_ADDRESS;
-      offline_query_command.control_code = aa55_bus::CONTROL_CODE::REGISTER;
-      offline_query_command.function_code = aa55_bus::FUNCTION_CODE::OFFLINE_QUERY;
-      offline_query_command.payload_length = 0;
-      this->queue_command(offline_query_command);
+      this->queue_command(make_offline_query_packet());
     }
   }
 
