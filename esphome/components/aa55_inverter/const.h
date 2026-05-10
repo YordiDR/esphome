@@ -63,7 +63,6 @@ enum class SENSOR_TYPE : uint8_t {
   COUNTRY_CODE
 };
 enum class INPUT_TYPE : uint8_t { START_STOP, RECONNECT_GRID, ADJUST_POWER };
-enum class ENCODING_TYPE : uint8_t { INTEGER, ASCII };
 enum class ON_OFF : uint8_t { OFF = 0, ON = 1 };
 
 constexpr uint8_t get_sensor_payload_location(SENSOR_TYPE type) {
@@ -138,16 +137,6 @@ constexpr uint8_t get_sensor_payload_length(SENSOR_TYPE type) {
       return 16;
     default:
       return 0;
-  }
-}
-
-constexpr ENCODING_TYPE get_sensor_encoding_type(SENSOR_TYPE type) {
-  switch (type) {
-    case SENSOR_TYPE::MODEL:
-    case SENSOR_TYPE::SERIAL_NUMBER:
-      return ENCODING_TYPE::ASCII;
-    default:
-      return ENCODING_TYPE::INTEGER;
   }
 }
 
