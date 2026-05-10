@@ -6,16 +6,17 @@ namespace esphome {
 namespace aa55_bus {
 static constexpr size_t READ_BATCH_SIZE = 64;
 static constexpr size_t MAX_QUEUED_TX_COMMANDS = 8;  // Max amount of commands that can be queued to send over UART
-static const uint16_t MAX_BUFFER_LENGTH = 512;       // Max characters for serial buffer, 150 bytes is the length of the
+static constexpr uint16_t MAX_BUFFER_LENGTH = 512;   // Max characters for serial buffer, 150 bytes is the length of the
                                                      // response to the longest command (read running info list)
-static const uint8_t MAX_RX_PAYLOAD_LENGTH =
+static constexpr uint8_t MAX_RX_PAYLOAD_LENGTH =
     150;  // Max RX payload length in bytes (longest response is read running info)
-static const uint8_t MAX_TX_PAYLOAD_LENGTH =
+static constexpr uint8_t MAX_TX_PAYLOAD_LENGTH =
     26;  // Max TX payload length in bytes (longest command is allocate register address)
-static const uint32_t OFFLINE_QUERY_INTERVAL =
+static constexpr uint32_t OFFLINE_QUERY_INTERVAL =
     60000;  // Time interval in ms for sending offline query commands for unregistered inverters
-static const uint8_t DEFAULT_INVERTER_ADDRESS = 0x7F;
-static const uint16_t COMMAND_DELAY = 500;  // Min time between AA55 commands is 500 ms according to AA55 documentation
+static constexpr uint8_t DEFAULT_INVERTER_ADDRESS = 0x7F;
+static constexpr uint16_t COMMAND_DELAY =
+    500;  // Min time between AA55 commands is 500 ms according to AA55 documentation
 
 enum class CONTROL_CODE : uint8_t { REGISTER = 0x00, READ = 0x01, EXECUTE = 0x03 };
 enum class FUNCTION_CODE : uint8_t {

@@ -31,6 +31,14 @@ void AA55InverterNumber::control(float value) {
   }
 }
 
+bool AA55InverterNumber::handles_response(aa55_bus::FUNCTION_CODE function_code) {
+  if (this->type_ == aa55_inverter::INPUT_TYPE::ADJUST_POWER) {
+    return function_code == aa55_bus::FUNCTION_CODE::ADJUST_POWER_RESPONSE;
+  }
+
+  return false;
+}
+
 void AA55InverterNumber::handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) {
   if (response != 6) {
     ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",

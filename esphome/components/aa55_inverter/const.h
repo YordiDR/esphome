@@ -6,11 +6,12 @@
 
 namespace esphome {
 namespace aa55_inverter {
-static const uint32_t INVERTER_OFFLINE_TIMEOUT =
+static constexpr uint32_t INVERTER_OFFLINE_TIMEOUT =
     30000;  // Time in ms after which an inverter is considered offline if no packets have been received
 
-const std::vector<std::string> WORK_MODE_LIST = {"Waiting", "Normal", "Fault"};
-const std::vector<std::string> ERROR_CODE_LIST = {"GFCI Device Failure",
+static constexpr const char *WORK_MODE_LIST[] = {"Waiting", "Normal", "Fault"};
+
+static constexpr const char *ERROR_CODE_LIST[] = {"GFCI Device Failure",
                                                   "AC HCT Failure",
                                                   "Unknown bit 2",
                                                   "DCI Consistency Failure",
@@ -67,102 +68,100 @@ enum class INPUT_TYPE : uint8_t { START_STOP, RECONNECT_GRID, ADJUST_POWER };
 enum class ENCODING_TYPE : uint8_t { INTEGER, ASCII };
 enum class ON_OFF : uint8_t { OFF = 0, ON = 1 };
 
-const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LOCATION = {
-    // Query running info sensors
-    {SENSOR_TYPE::VPV1, 0},
-    {SENSOR_TYPE::VPV2, 2},
-    {SENSOR_TYPE::IPV1, 4},
-    {SENSOR_TYPE::IPV2, 6},
-    {SENSOR_TYPE::VAC1, 8},
-    {SENSOR_TYPE::IAC1, 10},
-    {SENSOR_TYPE::FAC1, 12},
-    {SENSOR_TYPE::PAC, 14},
-    {SENSOR_TYPE::WORK_MODE, 16},
-    {SENSOR_TYPE::TEMPERATURE, 18},
-    {SENSOR_TYPE::ERROR_CODES, 20},
-    {SENSOR_TYPE::E_TOTAL, 24},
-    {SENSOR_TYPE::H_TOTAL, 28},
-    {SENSOR_TYPE::GFCI_FAULT_VALUE, 42},
-    {SENSOR_TYPE::E_TODAY, 44},
+constexpr uint8_t get_sensor_payload_location(SENSOR_TYPE type) {
+  switch (type) {
+    case SENSOR_TYPE::VPV1:
+      return 0;
+    case SENSOR_TYPE::VPV2:
+      return 2;
+    case SENSOR_TYPE::IPV1:
+      return 4;
+    case SENSOR_TYPE::IPV2:
+      return 6;
+    case SENSOR_TYPE::VAC1:
+      return 8;
+    case SENSOR_TYPE::IAC1:
+      return 10;
+    case SENSOR_TYPE::FAC1:
+      return 12;
+    case SENSOR_TYPE::PAC:
+      return 14;
+    case SENSOR_TYPE::WORK_MODE:
+      return 16;
+    case SENSOR_TYPE::TEMPERATURE:
+      return 18;
+    case SENSOR_TYPE::ERROR_CODES:
+      return 20;
+    case SENSOR_TYPE::E_TOTAL:
+      return 24;
+    case SENSOR_TYPE::H_TOTAL:
+      return 28;
+    case SENSOR_TYPE::GFCI_FAULT_VALUE:
+      return 42;
+    case SENSOR_TYPE::E_TODAY:
+      return 44;
+    case SENSOR_TYPE::MODEL:
+      return 5;
+    case SENSOR_TYPE::SERIAL_NUMBER:
+      return 31;
+    case SENSOR_TYPE::COUNTRY_CODE:
+      return 63;
+    default:
+      return 0;
+  }
+}
 
-    // Query ID info sensors
-    {SENSOR_TYPE::MODEL, 5},
-    {SENSOR_TYPE::SERIAL_NUMBER, 31},
-    {SENSOR_TYPE::COUNTRY_CODE, 63}};
+constexpr uint8_t get_sensor_payload_length(SENSOR_TYPE type) {
+  switch (type) {
+    case SENSOR_TYPE::VPV1:
+    case SENSOR_TYPE::VPV2:
+    case SENSOR_TYPE::IPV1:
+    case SENSOR_TYPE::IPV2:
+    case SENSOR_TYPE::VAC1:
+    case SENSOR_TYPE::IAC1:
+    case SENSOR_TYPE::FAC1:
+    case SENSOR_TYPE::PAC:
+    case SENSOR_TYPE::WORK_MODE:
+    case SENSOR_TYPE::TEMPERATURE:
+    case SENSOR_TYPE::GFCI_FAULT_VALUE:
+    case SENSOR_TYPE::E_TODAY:
+      return 2;
+    case SENSOR_TYPE::ERROR_CODES:
+      return 4;
+    case SENSOR_TYPE::E_TOTAL:
+      return 4;
+    case SENSOR_TYPE::H_TOTAL:
+      return 4;
+    case SENSOR_TYPE::COUNTRY_CODE:
+      return 1;
+    case SENSOR_TYPE::MODEL:
+      return 10;
+    case SENSOR_TYPE::SERIAL_NUMBER:
+      return 16;
+    default:
+      return 0;
+  }
+}
 
-const std::unordered_map<SENSOR_TYPE, uint8_t> MAP_SENSOR_PAYLOAD_LENGTH = {
-    // Query running info sensors
-    {SENSOR_TYPE::VPV1, 2},
-    {SENSOR_TYPE::VPV2, 2},
-    {SENSOR_TYPE::IPV1, 2},
-    {SENSOR_TYPE::IPV2, 2},
-    {SENSOR_TYPE::VAC1, 2},
-    {SENSOR_TYPE::IAC1, 2},
-    {SENSOR_TYPE::FAC1, 2},
-    {SENSOR_TYPE::PAC, 2},
-    {SENSOR_TYPE::WORK_MODE, 2},
-    {SENSOR_TYPE::TEMPERATURE, 2},
-    {SENSOR_TYPE::ERROR_CODES, 4},
-    {SENSOR_TYPE::E_TOTAL, 4},
-    {SENSOR_TYPE::H_TOTAL, 4},
-    {SENSOR_TYPE::GFCI_FAULT_VALUE, 2},
-    {SENSOR_TYPE::E_TODAY, 2},
-    {SENSOR_TYPE::COUNTRY_CODE, 1},
+constexpr ENCODING_TYPE get_sensor_encoding_type(SENSOR_TYPE type) {
+  switch (type) {
+    case SENSOR_TYPE::MODEL:
+    case SENSOR_TYPE::SERIAL_NUMBER:
+      return ENCODING_TYPE::ASCII;
+    default:
+      return ENCODING_TYPE::INTEGER;
+  }
+}
 
-    // Query ID info sensors
-    {SENSOR_TYPE::MODEL, 10},
-    {SENSOR_TYPE::SERIAL_NUMBER, 16}};
-
-const std::unordered_map<SENSOR_TYPE, ENCODING_TYPE> MAP_SENSOR_ENCODING_TYPE = {
-    // Query running info sensors
-    {SENSOR_TYPE::VPV1, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::VPV2, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::IPV1, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::IPV2, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::VAC1, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::IAC1, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::FAC1, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::PAC, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::WORK_MODE, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::TEMPERATURE, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::ERROR_CODES, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::E_TOTAL, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::H_TOTAL, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::GFCI_FAULT_VALUE, ENCODING_TYPE::INTEGER},
-    {SENSOR_TYPE::E_TODAY, ENCODING_TYPE::INTEGER},
-
-    // Query ID info sensors
-    {SENSOR_TYPE::MODEL, ENCODING_TYPE::ASCII},
-    {SENSOR_TYPE::SERIAL_NUMBER, ENCODING_TYPE::ASCII},
-    {SENSOR_TYPE::COUNTRY_CODE, ENCODING_TYPE::INTEGER}};
-
-const std::unordered_map<SENSOR_TYPE, aa55_bus::FUNCTION_CODE> MAP_SENSOR_RESPONSE_SOURCE = {
-    // Query running info sensors
-    {SENSOR_TYPE::VPV1, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::VPV2, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::IPV1, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::IPV2, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::VAC1, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::IAC1, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::FAC1, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::PAC, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::WORK_MODE, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::TEMPERATURE, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::ERROR_CODES, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::E_TOTAL, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::H_TOTAL, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::GFCI_FAULT_VALUE, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-    {SENSOR_TYPE::E_TODAY, aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE},
-
-    // Query ID info sensors
-    {SENSOR_TYPE::MODEL, aa55_bus::FUNCTION_CODE::ID_INFO_RESPONSE},
-    {SENSOR_TYPE::SERIAL_NUMBER, aa55_bus::FUNCTION_CODE::ID_INFO_RESPONSE},
-    {SENSOR_TYPE::COUNTRY_CODE, aa55_bus::FUNCTION_CODE::ID_INFO_RESPONSE}};
-
-const std::unordered_map<INPUT_TYPE, aa55_bus::FUNCTION_CODE> MAP_INPUT_RESPONSE = {
-    {INPUT_TYPE::START_STOP, aa55_bus::FUNCTION_CODE::START_INVERTER_RESPONSE},
-    {INPUT_TYPE::START_STOP, aa55_bus::FUNCTION_CODE::STOP_INVERTER_RESPONSE},
-    {INPUT_TYPE::RECONNECT_GRID, aa55_bus::FUNCTION_CODE::RECONNECT_GRID_RESPONSE},
-    {INPUT_TYPE::ADJUST_POWER, aa55_bus::FUNCTION_CODE::ADJUST_POWER_RESPONSE}};
+constexpr aa55_bus::FUNCTION_CODE get_sensor_response_source(SENSOR_TYPE type) {
+  switch (type) {
+    case SENSOR_TYPE::MODEL:
+    case SENSOR_TYPE::SERIAL_NUMBER:
+    case SENSOR_TYPE::COUNTRY_CODE:
+      return aa55_bus::FUNCTION_CODE::ID_INFO_RESPONSE;
+    default:
+      return aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE;
+  }
+}
 }  // namespace aa55_inverter
 }  // namespace esphome

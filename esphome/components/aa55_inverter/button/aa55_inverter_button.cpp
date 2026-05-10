@@ -14,6 +14,14 @@ void AA55InverterButton::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "  Id: %s", this->id_.c_str());
 }
 
+bool AA55InverterButton::handles_response(aa55_bus::FUNCTION_CODE function_code) {
+  if (this->type_ == aa55_inverter::INPUT_TYPE::RECONNECT_GRID) {
+    return function_code == aa55_bus::FUNCTION_CODE::RECONNECT_GRID_RESPONSE;
+  }
+
+  return false;
+}
+
 void AA55InverterButton::handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) {
   if (response != 6) {
     ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",

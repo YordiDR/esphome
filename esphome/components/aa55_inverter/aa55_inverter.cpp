@@ -174,7 +174,7 @@ void AA55Inverter::parse_id_info_response(const aa55_bus::AA55RXPacket &packet) 
 
 void AA55Inverter::parse_execute_response(const aa55_bus::AA55RXPacket &packet) {
   for (AA55InverterBaseInput *input : this->inputs_) {
-    if (input->get_response_function_code() == packet.function_code) {
+    if (input->handles_response(packet.function_code)) {
       ESP_LOGV(LOGGING_TAG, "Passing execute command response %x (payload %d) from inverter %x to input %s",
                (uint8_t) packet.function_code, packet.payload[0], this->device_address_, input->get_id().c_str());
       input->handle_response(packet.function_code, packet.payload[0]);

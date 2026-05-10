@@ -14,6 +14,7 @@ class AA55InverterSwitch : public AA55InverterBaseInput, public switch_::Switch,
   void setup() override;
   void dump_config() override;
   void write_state(bool state);
+  bool handles_response(aa55_bus::FUNCTION_CODE function_code) override;
   void handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) override;
   void handle_inverter_offline() override;
   void handle_inverter_online() override;

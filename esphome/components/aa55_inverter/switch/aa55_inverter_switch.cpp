@@ -38,6 +38,15 @@ void AA55InverterSwitch::write_state(bool state) {
   }
 }
 
+bool AA55InverterSwitch::handles_response(aa55_bus::FUNCTION_CODE function_code) {
+  if (this->type_ == aa55_inverter::INPUT_TYPE::START_STOP) {
+    return (function_code == aa55_bus::FUNCTION_CODE::START_INVERTER_RESPONSE ||
+            function_code == aa55_bus::FUNCTION_CODE::STOP_INVERTER_RESPONSE);
+  }
+
+  return false;
+}
+
 void AA55InverterSwitch::handle_response(aa55_bus::FUNCTION_CODE function_code, uint8_t response) {
   if (response != 6) {
     ESP_LOGW(LOGGING_TAG, "Inverter %x responded with NACK on inverter command %x.",

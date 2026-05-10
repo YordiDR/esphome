@@ -11,9 +11,9 @@ AA55InverterBaseSensor::AA55InverterBaseSensor(std::string id, aa55_inverter::SE
   this->type_ = type;
   this->skip_updates_ = skip_updates;
   this->offline_hold_ = offline_hold;
-  this->payload_location_ = aa55_inverter::MAP_SENSOR_PAYLOAD_LOCATION.at(type);
-  this->payload_length_ = aa55_inverter::MAP_SENSOR_PAYLOAD_LENGTH.at(type);
-  this->payload_source_ = aa55_inverter::MAP_SENSOR_RESPONSE_SOURCE.at(type);
+  this->payload_location_ = get_sensor_payload_location(type);
+  this->payload_length_ = get_sensor_payload_length(type);
+  this->payload_source_ = get_sensor_response_source(type);
 }
 
 std::string AA55InverterBaseSensor::get_id() { return this->id_; }
