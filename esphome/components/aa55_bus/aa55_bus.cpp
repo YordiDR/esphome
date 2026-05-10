@@ -108,7 +108,7 @@ void AA55Bus::loop() {
 void AA55Bus::send_packet(const aa55_bus::AA55TXPacket &command) {
   // Max packet = Allocate register address, payload 17 bytes + 9 bytes header/metadata = 26 bytes
   uint8_t packet[26];
-  uint8_t length = 0;
+  size_t length = 0;
   packet[length++] = 0xAA;
   packet[length++] = 0x55;
   packet[length++] = this->controller_address_;
@@ -150,7 +150,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
 
   bool packet_header_found{false};
   size_t packet_header_start_search_index{0};
-  uint8_t packet_size{UINT8_MAX};
+  size_t packet_size{UINT32_MAX};
 
   while (this->available() && !this->receive_buffer_.full() &&
          millis() - loop_start_time < 30) {  // Avoid blocking the thread for 30ms+
@@ -201,7 +201,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
     }
 
     // Determine packet size once we have at least 7 bytes
-    if (packet_size == UINT8_MAX) {
+    if (packet_size == UINT32_MAX) {
       if (this->receive_buffer_.size() < 7) {
         ESP_LOGV(LOGGING_TAG, "Could not find payload size in receive_buffer_ yet. Reading more data...");
         continue;
@@ -237,7 +237,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       this->receive_buffer_.consume(2);
       packet_header_found = false;
       packet_header_start_search_index = 0;
-      packet_size = UINT8_MAX;
+      packet_size = UINT32_MAX;
       continue;
     }
 
@@ -247,7 +247,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       this->receive_buffer_.consume(packet_size);
       packet_header_found = false;
       packet_header_start_search_index = 0;
-      packet_size = UINT8_MAX;
+      packet_size = UINT32_MAX;
       continue;
     }
 
@@ -257,7 +257,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
     response_packet.control_code = static_cast<aa55_bus::CONTROL_CODE>(this->receive_buffer_.peek(4));
     response_packet.function_code = static_cast<aa55_bus::FUNCTION_CODE>(this->receive_buffer_.peek(5));
     response_packet.payload_length = this->receive_buffer_.peek(6);
-    for (uint8_t i = 0; i < response_packet.payload_length; i++)
+    for (size_t i = 0; i < response_packet.payload_length; i++)
       response_packet.payload[i] = this->receive_buffer_.peek(7 + i);
 
     std::vector<aa55_inverter::AA55Inverter *>::iterator find_inverter_it;
@@ -281,7 +281,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
         this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
         packet_header_start_search_index = 0;
-        packet_size = UINT8_MAX;
+        packet_size = UINT32_MAX;
         continue;
       }
 
@@ -300,7 +300,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
         this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
         packet_header_start_search_index = 0;
-        packet_size = UINT8_MAX;
+        packet_size = UINT32_MAX;
         continue;
       }
 
@@ -313,7 +313,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
     this->receive_buffer_.consume(packet_size);
     packet_header_found = false;
     packet_header_start_search_index = 0;
-    packet_size = UINT8_MAX;
+    packet_size = UINT32_MAX;
   }
 }
 

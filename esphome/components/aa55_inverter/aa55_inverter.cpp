@@ -117,7 +117,7 @@ void AA55Inverter::parse_run_info_response(const aa55_bus::AA55RXPacket &packet)
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command
   bool all_zeroes = true;
-  for (uint8_t i = 0; i < packet.payload_length; i++)
+  for (size_t i = 0; i < packet.payload_length; i++)
     if (packet.payload[i] != 0) {
       all_zeroes = false;
       break;
@@ -141,7 +141,7 @@ void AA55Inverter::parse_id_info_response(const aa55_bus::AA55RXPacket &packet) 
 
   // During boot, sometimes the inverter returns an all 0 payload to the read command
   bool all_zeroes = true;
-  for (uint8_t i = 0; i < packet.payload_length; i++)
+  for (size_t i = 0; i < packet.payload_length; i++)
     if (packet.payload[i] != 0) {
       all_zeroes = false;
       break;
