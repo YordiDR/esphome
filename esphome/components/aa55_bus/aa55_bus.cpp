@@ -246,6 +246,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       ESP_LOGV(LOGGING_TAG, "Received packet for another device (%x). Discarding...", this->receive_buffer_.peek(3));
       this->receive_buffer_.consume(packet_size);
       packet_header_found = false;
+      packet_header_start_search_index = 0;
       packet_size = UINT8_MAX;
       continue;
     }
@@ -280,6 +281,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
                  discovered_serial_number.c_str());
         this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
+        packet_header_start_search_index = 0;
         packet_size = UINT8_MAX;
         continue;
       }
@@ -298,6 +300,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
                  packet_source_address);
         this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
+        packet_header_start_search_index = 0;
         packet_size = UINT8_MAX;
         continue;
       }
@@ -310,6 +313,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
 
     this->receive_buffer_.consume(packet_size);
     packet_header_found = false;
+    packet_header_start_search_index = 0;
     packet_size = UINT8_MAX;
   }
 }
