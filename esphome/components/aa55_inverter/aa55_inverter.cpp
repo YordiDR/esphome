@@ -188,7 +188,7 @@ uint8_t AA55Inverter::get_device_address() { return this->device_address_; }
 
 void AA55Inverter::set_parent_bus(aa55_bus::AA55Bus *bus) { this->parent_bus_ = bus; }
 
-std::string AA55Inverter::get_serial_number() { return this->serial_number_; }
+const std::string &AA55Inverter::get_serial_number() { return this->serial_number_; }
 
 // Function which is triggered when the inverter comes online by confirming its address.
 void AA55Inverter::handle_address_confirm(const aa55_bus::AA55RXPacket &packet) {

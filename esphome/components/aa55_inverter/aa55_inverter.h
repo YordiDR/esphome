@@ -23,7 +23,7 @@ class AA55Inverter : public PollingComponent {
   void set_parent_bus(aa55_bus::AA55Bus *bus);
   void handle_packet(const aa55_bus::AA55RXPacket &packet);
   void send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload = 0);
-  std::string get_serial_number();
+  const std::string &get_serial_number();
 
  protected:
   // Internal variables

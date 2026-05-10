@@ -81,7 +81,7 @@ class AA55Bus : public uart::UARTDevice, public Component {
   void loop() override;
   void add_inverter(aa55_inverter::AA55Inverter *inverter);
   void queue_command(aa55_bus::AA55TXPacket command);
-  std::string get_component_id();
+  const std::string &get_component_id();
   void add_registered_inverter(aa55_inverter::AA55Inverter *inverter);
   void remove_registered_inverter(aa55_inverter::AA55Inverter *inverter);
 
