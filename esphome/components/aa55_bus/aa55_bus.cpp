@@ -149,7 +149,6 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
   uint8_t read_buffer[READ_BATCH_SIZE];
 
   bool packet_header_found{false};
-  size_t packet_header_start_search_index{0};
   size_t packet_size{UINT32_MAX};
 
   while (this->available() && !this->receive_buffer_.full() &&
@@ -174,7 +173,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
 
       // Search for 0xAA 0x55 header by scanning ring buffer via peek()
       size_t header_pos = SIZE_MAX;
-      for (size_t i = packet_header_start_search_index; i + 1 < this->receive_buffer_.size(); i++) {
+      for (size_t i = 0; i + 1 < this->receive_buffer_.size(); i++) {
         if (this->receive_buffer_.peek(i) == 0xAA && this->receive_buffer_.peek(i + 1) == 0x55) {
           header_pos = i;
           break;
@@ -182,8 +181,16 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       }
 
       if (header_pos == SIZE_MAX) {
-        ESP_LOGV(LOGGING_TAG, "Could not find header in receive_buffer_ yet. Reading more data...");
-        packet_header_start_search_index = this->receive_buffer_.size() > 1 ? this->receive_buffer_.size() - 1 : 0;
+        const uint16_t garbage_byte_count = this->receive_buffer_.peek(this->receive_buffer_.size() - 1) == 0xAA
+                                                ? this->receive_buffer_.size() - 1
+                                                : this->receive_buffer_.size();
+        ESP_LOGV(
+            LOGGING_TAG,
+            "Could not find header in receive_buffer_ yet. Discarding %d bytes of garbage data from receive_buffer_.",
+            garbage_byte_count);
+        this->receive_buffer_.consume(garbage_byte_count);
+        ESP_LOGV(LOGGING_TAG, "New receive_buffer_ contents: %s",
+                 this->create_hex_string(this->receive_buffer_).c_str());
         continue;
       }
 
@@ -191,7 +198,7 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
 
       // Discard bytes before the header
       if (header_pos > 0) {
-        ESP_LOGV(LOGGING_TAG, "Stripping %d bytes before header from ring buffer", header_pos);
+        ESP_LOGV(LOGGING_TAG, "Discarding %d bytes before header from ring buffer", header_pos);
         this->receive_buffer_.consume(header_pos);
         ESP_LOGV(LOGGING_TAG, "New receive_buffer_ contents: %s",
                  this->create_hex_string(this->receive_buffer_).c_str());
@@ -236,7 +243,6 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       // Skip past the header so the next search finds the next valid header
       this->receive_buffer_.consume(2);
       packet_header_found = false;
-      packet_header_start_search_index = 0;
       packet_size = UINT32_MAX;
       continue;
     }
@@ -246,7 +252,6 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
       ESP_LOGV(LOGGING_TAG, "Received packet for another device (%x). Discarding...", this->receive_buffer_.peek(3));
       this->receive_buffer_.consume(packet_size);
       packet_header_found = false;
-      packet_header_start_search_index = 0;
       packet_size = UINT32_MAX;
       continue;
     }
@@ -280,7 +285,6 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
                  response_packet.payload_length, reinterpret_cast<const char *>(response_packet.payload));
         this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
-        packet_header_start_search_index = 0;
         packet_size = UINT32_MAX;
         continue;
       }
@@ -299,7 +303,6 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
                  packet_source_address);
         this->receive_buffer_.consume(packet_size);
         packet_header_found = false;
-        packet_header_start_search_index = 0;
         packet_size = UINT32_MAX;
         continue;
       }
@@ -312,7 +315,6 @@ void AA55Bus::process_rx(const uint32_t &loop_start_time) {
 
     this->receive_buffer_.consume(packet_size);
     packet_header_found = false;
-    packet_header_start_search_index = 0;
     packet_size = UINT32_MAX;
   }
 }
