@@ -24,6 +24,8 @@ aa55_bus::FUNCTION_CODE AA55InverterBaseSensor::get_payload_source() { return th
 
 void AA55InverterBaseSensor::force_next_update() { this->force_next_update_ = true; }
 
+bool AA55InverterBaseSensor::get_force_next_update() { return this->force_next_update_; }
+
 bool AA55InverterBaseSensor::time_to_update() {
   return this->skipped_updates_ == this->skip_updates_ || this->force_next_update_;
 }

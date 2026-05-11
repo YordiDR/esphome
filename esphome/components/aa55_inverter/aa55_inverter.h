@@ -24,6 +24,7 @@ class AA55Inverter : public PollingComponent {
   void handle_packet(const aa55_bus::AA55RXPacket &packet);
   void send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload = 0);
   const std::string &get_serial_number();
+  void force_pac_update();  // Trigger an update of the Pac sensor as soon as possible
 
  protected:
   // Internal variables
@@ -31,7 +32,7 @@ class AA55Inverter : public PollingComponent {
   uint8_t device_address_;
   std::vector<AA55InverterBaseSensor *> sensors_;
   std::vector<AA55InverterBaseInput *> inputs_;
-  bool inverter_online_{false};
+  bool inverter_online_{false}, next_update_only_forced_sensors_{false};
   aa55_bus::AA55Bus *parent_bus_{nullptr};
   // Initialised to max-timeout so the offline check doesn't fire before the inverter has registered
   uint32_t last_packet_received_{UINT32_MAX - aa55_inverter::INVERTER_OFFLINE_TIMEOUT};

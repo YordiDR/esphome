@@ -15,6 +15,7 @@ class AA55InverterBaseSensor {
   virtual void process_response(const uint8_t *payload, uint8_t payload_length) = 0;
   virtual void handle_inverter_offline() = 0;
   void force_next_update();
+  bool get_force_next_update();
 
  protected:
   uint16_t skip_updates_{0};
