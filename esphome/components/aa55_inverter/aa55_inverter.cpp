@@ -229,5 +229,8 @@ void AA55Inverter::force_pac_update() {
   this->next_update_only_forced_sensors_ = true;
   this->update();
 }
+
+bool AA55Inverter::is_online() const { return this->inverter_online_; }
+
 }  // namespace aa55_inverter
 }  // namespace esphome

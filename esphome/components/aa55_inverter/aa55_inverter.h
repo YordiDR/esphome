@@ -25,6 +25,7 @@ class AA55Inverter : public PollingComponent {
   void send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload = 0);
   const std::string &get_serial_number();
   void force_pac_update();  // Trigger an update of the Pac sensor as soon as possible
+  bool is_online() const;
 
  protected:
   // Internal variables
