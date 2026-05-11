@@ -15,9 +15,7 @@ CONF_ONLINE_INITIAL_VALUE = "online_initial_value"
 
 aa55_inverter_ns = cg.esphome_ns.namespace("aa55_inverter")
 aa55_bus_ns = cg.esphome_ns.namespace("aa55_bus")
-AA55Inverter = aa55_inverter_ns.class_(
-    "AA55Inverter", cg.PollingComponent, aa55_bus.AA55Inverter
-)
+AA55Inverter = aa55_inverter_ns.class_("AA55Inverter", cg.PollingComponent)
 
 INVERTER_CHILD_SCHEMA = cv.Schema(
     {cv.GenerateID(CONF_AA55_INVERTER_ID): cv.use_id(AA55Inverter)}

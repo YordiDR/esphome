@@ -12,8 +12,9 @@ CONF_DEVICE_ADDRESS = "device_address"
 CONF_CONTROLLER_ADDRESS = "controller_address"
 
 aa55_bus_ns = cg.esphome_ns.namespace("aa55_bus")
+aa55_inverter_ns = cg.esphome_ns.namespace("aa55_inverter")
 AA55Bus = aa55_bus_ns.class_("AA55Bus", cg.Component, uart.UARTDevice)
-AA55Inverter = aa55_bus_ns.class_("AA55Inverter")
+AA55Inverter = aa55_inverter_ns.class_("AA55Inverter")
 
 CONFIG_SCHEMA = (
     cv.Schema(
