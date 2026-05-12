@@ -130,11 +130,12 @@ void AA55Inverter::parse_run_info_response(const aa55_bus::AA55RXPacket &packet)
 
   // Save received values in the sensor attributes + publish state if applicable, take into account forced updates
   for (AA55InverterBaseSensor *sensor : this->sensors_) {
-    if (sensor->get_payload_source() == aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE)
+    if (sensor->get_payload_source() == aa55_bus::FUNCTION_CODE::RUN_INFO_RESPONSE) {
       if (this->next_update_only_forced_sensors_ && !sensor->get_force_next_update())
         continue;
 
-    sensor->process_response(packet.payload, packet.payload_length);
+      sensor->process_response(packet.payload, packet.payload_length);
+    }
   }
   if (this->next_update_only_forced_sensors_)
     this->next_update_only_forced_sensors_ = false;  // Reset after processing the response
