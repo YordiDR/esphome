@@ -32,23 +32,9 @@ void PylontechBattery::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "  Battery group ID: %s", this->parent_group_->get_component_id().c_str());
 }
 
-void PylontechBattery::loop() {
-  // Check for battery offline timeout
-  if (this->battery_online_ && millis() - this->last_response_received_ >= BATTERY_OFFLINE_TIMEOUT) {
-    ESP_LOGI(LOGGING_TAG, "Marking battery %d in group %s offline due to no response.", this->battery_number_,
-             this->parent_group_->get_component_id().c_str());
-    this->battery_online_ = false;
-  }
-}
+void PylontechBattery::loop() {}
 
 void PylontechBattery::update() {
-  // Get updated running info from battery if it's online
-  if (!this->battery_online_) {
-    ESP_LOGD(LOGGING_TAG, "Battery %d in group %s is currently offline. Skipping sending query run info command...",
-             this->battery_number_, this->parent_group_->get_component_id().c_str());
-    return;
-  }
-
   if (this->pwr_command_necessary_) {
     ESP_LOGD(LOGGING_TAG, "Queueing pwr command to group %s for battery %d",
              this->parent_group_->get_component_id().c_str(), this->battery_number_);
@@ -86,8 +72,5 @@ void PylontechBattery::handle_response(const pylontech_group::PylontechResponse 
 uint8_t PylontechBattery::get_battery_number() { return this->battery_number_; }
 
 void PylontechBattery::set_parent_group(pylontech_group::PylontechGroup *group) { this->parent_group_ = group; }
-
-bool PylontechBattery::is_online() const { return this->battery_online_; }
-
 }  // namespace pylontech_battery
 }  // namespace esphome

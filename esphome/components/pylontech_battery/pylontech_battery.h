@@ -20,13 +20,11 @@ class PylontechBattery : public PollingComponent {
   uint8_t get_battery_number();
   void set_parent_group(pylontech_group::PylontechGroup *group);
   void handle_response(const pylontech_group::PylontechResponse &response);
-  bool is_online() const;
 
  protected:
   // Internal variables
   uint8_t battery_number_;
   std::vector<PylontechBatteryBaseSensor *> sensors_;
-  bool battery_online_{false};
   pylontech_group::PylontechGroup *parent_group_{nullptr};
   // Initialised to max-timeout so the offline check doesn't fire before the inverter has registered
   uint32_t last_response_received_{UINT32_MAX - BATTERY_OFFLINE_TIMEOUT};
