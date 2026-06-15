@@ -100,7 +100,6 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
     ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", rx_buffer);
 #endif
     ESP_LOGW(LOGGING_TAG, "UART RX buffer for group %s has filled up. Clearing buffer...", this->id_.c_str());
-
     this->receive_buffer_.clear();
 
     // Drain UART hardware buffer
@@ -118,16 +117,16 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
   if (this->waiting_for_response_) {
     ESP_LOGD(LOGGING_TAG, "Started receiving response for command %s on group %s battery %d",
              this->last_sent_command_.command, this->id_.c_str(), this->last_sent_command_.battery_number);
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_WARNING
   } else {
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_WARNING
     char rx_buffer[this->receive_buffer_.size() + 1];
     this->receive_buffer_.to_string(rx_buffer);
     ESP_LOGW(LOGGING_TAG,
              "Received unexpected data on UART for group %s while not waiting for a response. Received data: %s",
              this->id_.c_str(), rx_buffer);
+#endif
     this->receive_buffer_.clear();
     return;
-#endif
   }
 
   while (this->available() && !this->receive_buffer_.full() &&
