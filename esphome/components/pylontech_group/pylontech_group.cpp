@@ -116,15 +116,21 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
 
   if (this->waiting_for_response_) {
     ESP_LOGD(LOGGING_TAG, "Started receiving response for command %s on group %s battery %d",
-             this->last_sent_command_.command, this->id_.c_str(), this->last_sent_command_.battery_number);
+             command_to_string(this->last_sent_command_.command), this->id_.c_str(),
+             this->last_sent_command_.battery_number);
   } else {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_WARNING
-    char rx_buffer[this->receive_buffer_.size() + 1];
-    this->receive_buffer_.to_string(rx_buffer);
     ESP_LOGW(LOGGING_TAG,
-             "Received unexpected data on UART for group %s while not waiting for a response. Received data: %s",
-             this->id_.c_str(), rx_buffer);
-#endif
+             "Received unexpected data on UART for group %s while not waiting for a response. Clearing RX buffer...",
+             this->id_.c_str());
+
+    // Drain UART hardware buffer
+    uint8_t buf[64];
+    while (this->available() > 0 && millis() - loop_start_time < 30) {
+      const size_t to_drain = std::min((size_t) this->available(), sizeof(buf));
+      if (!this->read_array(buf, to_drain))
+        break;
+    }
+    this->waiting_for_response_ = false;
     this->receive_buffer_.clear();
     return;
   }
