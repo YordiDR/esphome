@@ -92,6 +92,8 @@ void PylontechGroup::send_command(const PylontechCommand &command) {
 }
 
 void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
+  uint8_t read_buffer[READ_BATCH_SIZE];
+
   // Drop all RX buffer contents on buffer overload
   if (this->receive_buffer_.full()) {
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
@@ -103,16 +105,13 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
     this->receive_buffer_.clear();
 
     // Drain UART hardware buffer
-    uint8_t buf[64];
     while (this->available() > 0 && millis() - loop_start_time < 30) {
-      const size_t to_drain = std::min((size_t) this->available(), sizeof(buf));
-      if (!this->read_array(buf, to_drain))
+      const size_t to_drain = std::min((size_t) this->available(), READ_BATCH_SIZE);
+      if (!this->read_array(read_buffer, to_drain))
         break;
     }
     return;
   }
-
-  uint8_t read_buffer[READ_BATCH_SIZE];
 
   if (this->waiting_for_response_) {
     ESP_LOGD(LOGGING_TAG, "Started receiving response for command %s on group %s battery %d",
@@ -124,10 +123,9 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
              this->id_.c_str());
 
     // Drain UART hardware buffer
-    uint8_t buf[64];
     while (this->available() > 0 && millis() - loop_start_time < 30) {
-      const size_t to_drain = std::min((size_t) this->available(), sizeof(buf));
-      if (!this->read_array(buf, to_drain))
+      const size_t to_drain = std::min((size_t) this->available(), READ_BATCH_SIZE);
+      if (!this->read_array(read_buffer, to_drain))
         break;
     }
     this->waiting_for_response_ = false;
@@ -145,42 +143,42 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
     if (!this->read_array(read_buffer, to_read))
       break;
 
-    for (size_t i = 0; i < to_read; i++)
-      this->receive_buffer_.push((char) read_buffer[i]);
+    //     for (size_t i = 0; i < to_read; i++)
+    //       this->receive_buffer_.push((char) read_buffer[i]);
 
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
-    char rx_buffer[this->receive_buffer_.size() + 1];
-    this->receive_buffer_.to_string(rx_buffer);
-    ESP_LOGV(LOGGING_TAG, "Updated receive_buffer_ contents: %s", rx_buffer);
-#endif
+    // #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
+    //     char rx_buffer[this->receive_buffer_.size() + 1];
+    //     this->receive_buffer_.to_string(rx_buffer);
+    //     ESP_LOGV(LOGGING_TAG, "Updated receive_buffer_ contents: %s", rx_buffer);
+    // #endif
 
-    if (!this->available()) {
-      ESP_LOGD(LOGGING_TAG, "Finished receiving response for command %s on group %s battery %d",
-               this->last_sent_command_.command, this->id_.c_str(), this->last_sent_command_.battery_number);
-      this->waiting_for_response_ = false;
+    //     if (!this->available()) {
+    //       ESP_LOGD(LOGGING_TAG, "Finished receiving response for command %s on group %s battery %d",
+    //                this->last_sent_command_.command, this->id_.c_str(), this->last_sent_command_.battery_number);
+    //       this->waiting_for_response_ = false;
 
-      PylontechResponse response = PylontechResponse{};
-      response.battery_number = this->last_sent_command_.battery_number;
-      response.command = this->last_sent_command_.command;
-      this->receive_buffer_.to_string(response.payload);
-      this->receive_buffer_.clear();
+    //       PylontechResponse response = PylontechResponse{};
+    //       response.battery_number = this->last_sent_command_.battery_number;
+    //       response.command = this->last_sent_command_.command;
+    //       this->receive_buffer_.to_string(response.payload);
+    //       this->receive_buffer_.clear();
 
-      std::vector<pylontech_battery::PylontechBattery *>::iterator find_battery_it =
-          std::find_if(this->configured_batteries_.begin(), this->configured_batteries_.end(),
-                       [response](pylontech_battery::PylontechBattery *battery) {
-                         return battery->get_battery_number() == response.battery_number;
-                       });
-      if (find_battery_it == this->configured_batteries_.end()) {
-        ESP_LOGD(LOGGING_TAG, "Received unexpected response. Discarding...");
-        break;
-      }
+    //       std::vector<pylontech_battery::PylontechBattery *>::iterator find_battery_it =
+    //           std::find_if(this->configured_batteries_.begin(), this->configured_batteries_.end(),
+    //                        [response](pylontech_battery::PylontechBattery *battery) {
+    //                          return battery->get_battery_number() == response.battery_number;
+    //                        });
+    //       if (find_battery_it == this->configured_batteries_.end()) {
+    //         ESP_LOGD(LOGGING_TAG, "Received unexpected response. Discarding...");
+    //         break;
+    //       }
 
-      ESP_LOGD(LOGGING_TAG, "Received response for battery (%d).", response.battery_number);
+    //       ESP_LOGD(LOGGING_TAG, "Received response for battery (%d).", response.battery_number);
 
-      // Dispatch to battery
-      (*find_battery_it)->handle_response(response);
-      break;
-    }
+    //       // Dispatch to battery
+    //       (*find_battery_it)->handle_response(response);
+    //       break;
+    //     }
   }
 }
 }  // namespace pylontech_group
