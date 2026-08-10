@@ -52,6 +52,8 @@ void PylontechBattery::add_sensor(PylontechBatteryBaseSensor *sensor) { this->se
 void PylontechBattery::handle_response(const pylontech_group::PylontechResponse &response) {
   this->last_response_received_ = millis();
 
+  return;  // Temp return for debugging
+
   if (response.command == pylontech_group::COMMAND::UNKNOWN) {
     ESP_LOGW(LOGGING_TAG, "Received response '%s' for battery %d in group %s with unknown command. Skipping...",
              response.payload, this->battery_number_, this->parent_group_->get_component_id().c_str());

@@ -37,11 +37,17 @@ bool RingBuffer::empty() const { return this->size_ == 0; }
 
 bool RingBuffer::full() const { return this->size_ == this->CAPACITY; }
 
-void RingBuffer::to_string(char *buf) const {
-  for (size_t i = 0; i < this->size_; i++) {
+void RingBuffer::to_string(char *buf, size_t buf_length) const {
+  if (buf_length == 0) {
+    return;
+  }
+  const size_t string_length =
+      std::min(this->size_, buf_length - 1);  // -1 to leave space for null terminator in the buffer
+
+  for (size_t i = 0; i < string_length; i++) {
     buf[i] = this->peek(i);
   }
-  buf[this->size_] = '\0';
+  buf[string_length] = '\0';
 }
 
 PylontechGroup::PylontechGroup(std::string id) : uart::UARTDevice(), Component() { this->id_ = id; }
@@ -84,7 +90,7 @@ void PylontechGroup::loop() {
 
 void PylontechGroup::send_command(const PylontechCommand &command) {
   this->last_sent_command_ = command;
-  char buf[16];  // Buffer to hold the generated command string, max length is 8 (e.g. "stat 15") + null terminator
+  char buf[MAX_COMMAND_LENGTH + 1];  // Buffer to hold the generated command string
   snprintf(buf, sizeof(buf), "%s %d\n", command_to_string(command.command), command.battery_number);
   ESP_LOGD(LOGGING_TAG, "Sending command %s", buf);
   this->waiting_for_response_ = true;
@@ -98,7 +104,7 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
   if (this->receive_buffer_.full()) {
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
     char rx_buffer[this->receive_buffer_.size() + 1];
-    this->receive_buffer_.to_string(rx_buffer);
+    this->receive_buffer_.to_string(rx_buffer, sizeof(rx_buffer));
     ESP_LOGV(LOGGING_TAG, "UART RX buffer contents: %s", rx_buffer);
 #endif
     ESP_LOGW(LOGGING_TAG, "UART RX buffer for group %s has filled up. Clearing buffer...", this->id_.c_str());
@@ -114,9 +120,7 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
   }
 
   if (this->waiting_for_response_) {
-    ESP_LOGD(LOGGING_TAG, "Started receiving response for command %s on group %s battery %d",
-             command_to_string(this->last_sent_command_.command), this->id_.c_str(),
-             this->last_sent_command_.battery_number);
+    ESP_LOGD(LOGGING_TAG, "Started receiving response for pylontech group %s", this->id_.c_str());
   } else {
     ESP_LOGW(LOGGING_TAG,
              "Received unexpected data on UART for group %s while not waiting for a response. Clearing RX buffer...",
@@ -133,52 +137,114 @@ void PylontechGroup::process_rx(const uint32_t &loop_start_time) {
     return;
   }
 
+  size_t response_size{UINT32_MAX};
+
   while (this->available() && !this->receive_buffer_.full() &&
          millis() - loop_start_time < 30) {  // Avoid blocking the thread for 30ms+
     // Read available bytes in fixed-size batches to reduce UART call overhead
     const size_t avail = (size_t) this->available();
     const size_t to_read = std::min(avail, READ_BATCH_SIZE);
+    char receive_buffer_string[MAX_BUFFER_LENGTH + 1];
     ESP_LOGD(LOGGING_TAG, "%d bytes are available from UART, max buffer size is %d, reading %d bytes...", avail,
              READ_BATCH_SIZE, to_read);
     if (!this->read_array(read_buffer, to_read))
       break;
 
-    //     for (size_t i = 0; i < to_read; i++)
-    //       this->receive_buffer_.push((char) read_buffer[i]);
+    for (size_t i = 0; i < to_read; i++) {
+      if (read_buffer[i] == ' ') {
+        if (this->response_last_char_space_) {
+          continue;
+        } else {
+          this->response_last_char_space_ = true;
+          this->receive_buffer_.push(' ');  // Replace multiple spaces with a single space to make parsing easier
+        }
+      } else {
+        if (this->response_last_char_space_) {
+          this->response_last_char_space_ = false;
+        }
+        this->receive_buffer_.push((char) read_buffer[i]);
+      }
+    }
 
     // #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
     //     char rx_buffer[this->receive_buffer_.size() + 1];
-    //     this->receive_buffer_.to_string(rx_buffer);
+    //     this->receive_buffer_.to_string(rx_buffer, sizeof(rx_buffer));
     //     ESP_LOGV(LOGGING_TAG, "Updated receive_buffer_ contents: %s", rx_buffer);
     // #endif
 
-    //     if (!this->available()) {
-    //       ESP_LOGD(LOGGING_TAG, "Finished receiving response for command %s on group %s battery %d",
-    //                this->last_sent_command_.command, this->id_.c_str(), this->last_sent_command_.battery_number);
-    //       this->waiting_for_response_ = false;
+    // Look for command confirmation to signal the start of a command response
+    if (!this->response_start_found_) {
+      this->receive_buffer_.to_string(receive_buffer_string, sizeof(receive_buffer_string));
+      const char *match = strstr(receive_buffer_string, PYLON_COMMAND_START);
+      if (match == nullptr) {
+        ESP_LOGV(LOGGING_TAG,
+                 "Could not yet find the expected command start '%s' in the response. Reading more data...",
+                 PYLON_COMMAND_START);
+        continue;
+      }
 
-    //       PylontechResponse response = PylontechResponse{};
-    //       response.battery_number = this->last_sent_command_.battery_number;
-    //       response.command = this->last_sent_command_.command;
-    //       this->receive_buffer_.to_string(response.payload);
-    //       this->receive_buffer_.clear();
+      ESP_LOGV(LOGGING_TAG, "Found start of command response for group: %s, battery: %d, command: %s",
+               this->id_.c_str(), this->last_sent_command_.battery_number,
+               command_to_string(this->last_sent_command_.command));
+      this->response_start_found_ = true;
 
-    //       std::vector<pylontech_battery::PylontechBattery *>::iterator find_battery_it =
-    //           std::find_if(this->configured_batteries_.begin(), this->configured_batteries_.end(),
-    //                        [response](pylontech_battery::PylontechBattery *battery) {
-    //                          return battery->get_battery_number() == response.battery_number;
-    //                        });
-    //       if (find_battery_it == this->configured_batteries_.end()) {
-    //         ESP_LOGD(LOGGING_TAG, "Received unexpected response. Discarding...");
-    //         break;
-    //       }
+      // Remove characters & command confirmation before start of response
+      size_t to_remove = match - receive_buffer_string + 1;  // Also remove newline character after the start character
+      ESP_LOGV(LOGGING_TAG, "Removing %d characters preceding command response from RX buffer...", to_remove);
+      this->receive_buffer_.consume(to_remove);
+    }
 
-    //       ESP_LOGD(LOGGING_TAG, "Received response for battery (%d).", response.battery_number);
+    if (!this->response_end_found_) {
+      this->receive_buffer_.to_string(receive_buffer_string, sizeof(receive_buffer_string));
+      const char *match = strstr(receive_buffer_string, PYLON_COMMAND_END);
+      if (match == nullptr) {
+        ESP_LOGV(LOGGING_TAG,
+                 "Could not yet find the expected '%s' command end characters in the response. Reading more data...",
+                 PYLON_COMMAND_END);
+        continue;
+      }
 
-    //       // Dispatch to battery
-    //       (*find_battery_it)->handle_response(response);
-    //       break;
-    //     }
+      ESP_LOGV(LOGGING_TAG, "Found end of command response for group: %s, battery: %d, command: %s", this->id_.c_str(),
+               this->last_sent_command_.battery_number, command_to_string(this->last_sent_command_.command));
+      this->response_end_found_ = true;
+
+      // Determine the end of the response
+      response_size = match - receive_buffer_string;  // Response length = index of command end character
+      ESP_LOGD(LOGGING_TAG, "Successfully received a response (%d bytes) for group: %s, battery: %d, command: %s",
+               response_size, this->id_.c_str(), this->last_sent_command_.battery_number,
+               command_to_string(this->last_sent_command_.command));
+      ESP_LOGD(LOGGING_TAG, "Response payload: %.*s", response_size, receive_buffer_string);
+    }
+
+    this->waiting_for_response_ = false;
+    this->response_start_found_ = false;
+    this->response_end_found_ = false;
+    this->response_last_char_space_ = false;
+
+    return;  // Temp for debugging
+
+    PylontechResponse response = PylontechResponse{};
+    response.battery_number = this->last_sent_command_.battery_number;
+    response.command = this->last_sent_command_.command;
+    const size_t copy_size = std::min(response_size + 1, sizeof(response.payload));
+    this->receive_buffer_.to_string(response.payload, copy_size);
+    this->receive_buffer_.clear();
+
+    // Somehow the block above crashes the ESP, it's not the to_string function
+
+    std::vector<pylontech_battery::PylontechBattery *>::iterator find_battery_it =
+        std::find_if(this->configured_batteries_.begin(), this->configured_batteries_.end(),
+                     [response](pylontech_battery::PylontechBattery *battery) {
+                       return battery->get_battery_number() == response.battery_number;
+                     });
+    if (find_battery_it == this->configured_batteries_.end()) {
+      ESP_LOGD(LOGGING_TAG, "Received unexpected response. Discarding...");
+      break;
+    }
+
+    // Dispatch to battery
+    (*find_battery_it)->handle_response(response);
+    break;
   }
 }
 }  // namespace pylontech_group

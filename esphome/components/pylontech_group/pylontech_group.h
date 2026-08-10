@@ -24,7 +24,7 @@ class RingBuffer {
   size_t size() const;
   bool empty() const;
   bool full() const;
-  void to_string(char *buf) const;
+  void to_string(char *buf, size_t buf_length) const;
 
  private:
   static constexpr size_t CAPACITY = MAX_BUFFER_LENGTH;
@@ -94,6 +94,9 @@ class PylontechGroup : public uart::UARTDevice, public Component {
                                 COMMAND_DELAY};  // Set to max - interval to allow sending immediately on startup
   PylontechCommand last_sent_command_{};  // Last command sent to batteries, used to correlate responses to commands
   bool waiting_for_response_{false};
+  bool response_start_found_{false};
+  bool response_end_found_{false};
+  bool response_last_char_space_{false};  // Used to track if the last character in the response was a space
 
   // Functions
   void send_command(const PylontechCommand &command);  // Function that generates the command and sends it via UART

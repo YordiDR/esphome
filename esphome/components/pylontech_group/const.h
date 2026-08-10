@@ -5,13 +5,17 @@
 
 namespace esphome {
 namespace pylontech_group {
-static constexpr size_t READ_BATCH_SIZE = 64;
+static constexpr size_t READ_BATCH_SIZE = 256;
 static constexpr size_t MAX_QUEUED_TX_COMMANDS = 16;  // Max amount of commands that can be queued to send over UART
-static constexpr uint16_t MAX_BUFFER_LENGTH = 1024;   // Max characters for serial buffer, ?? bytes is the length of the
-                                                      // response to the longest command
+static constexpr uint16_t MAX_BUFFER_LENGTH = 3072;   // Max characters for serial buffer, +-2000 characters is the
+                                                      // length of the response to the longest command
+static constexpr uint8_t MAX_COMMAND_LENGTH = 16;     // Max characters for stringified command
 static constexpr uint16_t COMMAND_DELAY = 500;        // Min time between RS232 commands in milliseconds
 static constexpr const char *PWR_COMMAND = "pwr";
 static constexpr const char *STAT_COMMAND = "stat";
+static constexpr const char *PYLON_DEBUG_PROMPT = "pylon_debug>";
+static constexpr const char *PYLON_COMMAND_START = "@";
+static constexpr const char *PYLON_COMMAND_END = "$$";
 
 enum class COMMAND : uint8_t { PWR, STAT, UNKNOWN };
 
