@@ -36,8 +36,12 @@ class BT5Thermometer : public ble_client::BLEClientNode, public Component {
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
 
+  void set_update_interval(uint32_t update_interval) { this->update_interval_ = update_interval; }
+
  protected:
   uint16_t char_handle_{0};
+  uint32_t update_interval_;
+  uint32_t last_update_timestamp_{0};
   std::vector<BT5ProbeSensor *> probes_;
   binary_sensor::BinarySensor *connection_sensor_{nullptr};
   std::string thermometer_id_;

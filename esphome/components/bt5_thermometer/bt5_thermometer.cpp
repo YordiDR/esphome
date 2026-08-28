@@ -62,15 +62,24 @@ void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if
     }
     case ESP_GATTC_NOTIFY_EVT: {
       ESP_LOGD(TAG, "BLE Notify received on handle '%d' from %s", param->notify.handle, this->thermometer_id_.c_str());
-      if (param->notify.handle == this->char_handle_) {
-        this->last_notify_packet_received_timestamp_ = millis();
-        if (this->is_stale_) {
-          this->is_stale_ = false;
-          ESP_LOGI(TAG, "%s resumed sending data updates.", this->thermometer_id_.c_str());
-        }
-        ESP_LOGD(TAG, "BLE Notify received for correct handle from %s, parsing response...",
-                 this->thermometer_id_.c_str());
+      if (param->notify.handle != this->char_handle_) {
+        break;  // Ignore notifications from other characteristics
+      }
+
+      ESP_LOGD(TAG, "BLE Notify received for correct handle from %s", this->thermometer_id_.c_str());
+      uint32_t now = millis();
+      this->last_notify_packet_received_timestamp_ = now;
+      if (this->is_stale_) {
+        this->is_stale_ = false;
+        ESP_LOGI(TAG, "%s resumed sending data updates.", this->thermometer_id_.c_str());
+      }
+
+      if (now - this->last_update_timestamp_ >= this->update_interval_) {
+        this->last_update_timestamp_ = now;
         this->parse_data_(param->notify.value, param->notify.value_len);
+      } else {
+        ESP_LOGD(TAG, "Ignoring BLE Notify from %s because update interval has not passed",
+                 this->thermometer_id_.c_str());
       }
       break;
     }

@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_NAME,
+    CONF_UPDATE_INTERVAL,
     DEVICE_CLASS_CONNECTIVITY,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
@@ -24,6 +25,9 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.Required(CONF_ID): cv.declare_id(BT5Thermometer),
+            cv.Optional(
+                CONF_UPDATE_INTERVAL, default="10s"
+            ): cv.positive_time_period_milliseconds,
         }
     )
     .extend(ble_client.BLE_CLIENT_SCHEMA)
