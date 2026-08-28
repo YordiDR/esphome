@@ -20,6 +20,7 @@ class BT5ProbeSensor : public sensor::Sensor {
 
 class BT5Thermometer : public ble_client::BLEClientNode, public Component {
  public:
+  explicit BT5Thermometer(std::string thermometer_id) : thermometer_id_(thermometer_id) {}
   void setup() override;
   void loop() override;
 
@@ -35,6 +36,7 @@ class BT5Thermometer : public ble_client::BLEClientNode, public Component {
   uint16_t char_handle_{0};
   std::vector<BT5ProbeSensor *> probes_;
   binary_sensor::BinarySensor *connection_sensor_{nullptr};
+  std::string thermometer_id_;
   void parse_data_(const uint8_t *data, uint16_t length);
 };
 

@@ -32,7 +32,7 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = cg.new_Pvariable(config[CONF_ID], config[CONF_ID].id)
     await cg.register_component(var, config)
     await ble_client.register_ble_node(var, config)
 
