@@ -101,7 +101,7 @@ void BT5Thermometer::parse_data_(const uint8_t *data, uint16_t length) {
         probe->set_connected(true);
       }
 
-      probe->publish_state((uint16_t) (raw_temp / 10.0));
+      probe->publish_state((raw_temp / 10.0));
     }
   }
 }
