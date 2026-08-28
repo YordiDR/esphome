@@ -37,7 +37,11 @@ class BT5Thermometer : public ble_client::BLEClientNode, public Component {
   std::vector<BT5ProbeSensor *> probes_;
   binary_sensor::BinarySensor *connection_sensor_{nullptr};
   std::string thermometer_id_;
+  uint32_t last_notify_packet_received_timestamp_{0};
+  bool is_stale_{false};
+
   void parse_data_(const uint8_t *data, uint16_t length);
+  void invalidate_probes_();
 };
 
 }  // namespace bt5_thermometer
