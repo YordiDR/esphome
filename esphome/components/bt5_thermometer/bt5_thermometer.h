@@ -2,8 +2,8 @@
 
 #include <vector>
 #include "esphome/core/component.h"
-#include "esphome/components/ble_client/ble_client.h"
-#include "esphome/components/sensor/sensor.h"
+#include "../ble_client/ble_client.h"
+#include "../sensor/sensor.h"
 
 namespace esphome {
 namespace bt5_thermometer {

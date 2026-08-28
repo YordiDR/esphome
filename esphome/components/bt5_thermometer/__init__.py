@@ -12,6 +12,7 @@ from esphome.core import ID
 
 CONF_NAME_PREFIX = "name_prefix"
 DEPENDENCIES = ["ble_client"]
+AUTO_LOAD = ["sensor"]
 
 bt5_thermometer_ns = cg.esphome_ns.namespace("bt5_thermometer")
 BT5Thermometer = bt5_thermometer_ns.class_(

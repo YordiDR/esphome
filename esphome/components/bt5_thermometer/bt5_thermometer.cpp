@@ -14,8 +14,8 @@ void BT5Thermometer::register_probe(BT5ProbeSensor *probe) { this->probes_.push_
 void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                          esp_ble_gattc_cb_param_t *param) {
   if (event == ESP_GATTC_SEARCH_CMPL_EVT) {
-    esp32_ble_tracker::BLECharacteristic *char_desc = this->parent()->get_characteristic(
-        esp32_ble_tracker::ESPBTUUID::from_uuid16(0xFFB0), esp32_ble_tracker::ESPBTUUID::from_uuid16(0xFFB2));
+    esp32_ble_client::BLECharacteristic *char_desc = this->parent()->get_characteristic(
+        esp32_ble_tracker::ESPBTUUID::from_uint16(0xFFB0), esp32_ble_tracker::ESPBTUUID::from_uint16(0xFFB2));
 
     if (char_desc != nullptr) {
       this->char_handle_ = char_desc->handle;
