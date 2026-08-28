@@ -2,8 +2,9 @@
 
 #include <vector>
 #include "esphome/core/component.h"
-#include "../ble_client/ble_client.h"
-#include "../sensor/sensor.h"
+#include "esphome/components/ble_client/ble_client.h"
+#include "esphome/components/sensor/sensor.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 
 namespace esphome {
 namespace bt5_thermometer {
@@ -23,13 +24,17 @@ class BT5Thermometer : public ble_client::BLEClientNode, public Component {
   void loop() override;
 
   void register_probe(BT5ProbeSensor *probe);
+  void set_connection_sensor(binary_sensor::BinarySensor *connection_sensor) {
+    this->connection_sensor_ = connection_sensor;
+  }
+
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
 
  protected:
   uint16_t char_handle_{0};
   std::vector<BT5ProbeSensor *> probes_;
-
+  binary_sensor::BinarySensor *connection_sensor_{nullptr};
   void parse_data_(const uint8_t *data, uint16_t length);
 };
 
