@@ -18,7 +18,7 @@ void BT5Thermometer::loop() {
   if (this->connection_sensor_->state && !this->is_stale_ &&
       millis() - this->last_notify_packet_received_timestamp_ > STALE_TIMEOUT_MS) {
     this->is_stale_ = true;
-    ESP_LOGW(TAG, "%s stopped sending data updates. Marking probes as unknown.", this->thermometer_id_.c_str());
+    ESP_LOGI(TAG, "%s stopped sending data updates. Marking probes as unknown.", this->thermometer_id_.c_str());
     this->invalidate_probes_();
   }
 }
@@ -64,6 +64,10 @@ void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if
       ESP_LOGD(TAG, "BLE Notify received on handle '%d' from %s", param->notify.handle, this->thermometer_id_.c_str());
       if (param->notify.handle == this->char_handle_) {
         this->last_notify_packet_received_timestamp_ = millis();
+        if (this->is_stale_) {
+          this->is_stale_ = false;
+          ESP_LOGI(TAG, "%s resumed sending data updates.", this->thermometer_id_.c_str());
+        }
         ESP_LOGD(TAG, "BLE Notify received for correct handle from %s, parsing response...",
                  this->thermometer_id_.c_str());
         this->parse_data_(param->notify.value, param->notify.value_len);
