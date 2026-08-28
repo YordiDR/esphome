@@ -14,8 +14,12 @@ class BT5ProbeSensor : public sensor::Sensor {
   explicit BT5ProbeSensor(uint16_t probe_number) : probe_number_(probe_number) {}
   uint8_t get_probe_number() const { return probe_number_; }
 
+  bool is_connected() const { return connected_; }
+  void set_connected(bool connected) { connected_ = connected; }
+
  protected:
   uint8_t probe_number_{0};
+  bool connected_{true};
 };
 
 class BT5Thermometer : public ble_client::BLEClientNode, public Component {

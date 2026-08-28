@@ -10,6 +10,7 @@ static const char *const TAG = "bt5_thermometer";
 void BT5Thermometer::setup() {
   // Initialize connection status sensor as disconnected
   this->connection_sensor_->publish_state(false);
+  this->invalidate_probes_();
 }
 
 void BT5Thermometer::loop() {
@@ -24,7 +25,10 @@ void BT5Thermometer::loop() {
 
 void BT5Thermometer::invalidate_probes_() {
   for (BT5ProbeSensor *probe : this->probes_) {
-    probe->publish_state(NAN);
+    if (probe->is_connected()) {
+      probe->set_connected(false);
+      probe->publish_state(NAN);
+    }
   }
 }
 
@@ -47,16 +51,12 @@ void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if
     }
     case ESP_GATTC_CONNECT_EVT: {
       ESP_LOGI(TAG, "Connected to %s", this->thermometer_id_.c_str());
-      if (this->connection_sensor_ != nullptr) {
-        this->connection_sensor_->publish_state(true);
-      }
+      this->connection_sensor_->publish_state(true);
       break;
     }
     case ESP_GATTC_DISCONNECT_EVT: {
       ESP_LOGI(TAG, "Disconnected from %s", this->thermometer_id_.c_str());
-      if (this->connection_sensor_ != nullptr) {
-        this->connection_sensor_->publish_state(false);
-      }
+      this->connection_sensor_->publish_state(false);
       this->invalidate_probes_();
       break;
     }
@@ -87,16 +87,18 @@ void BT5Thermometer::parse_data_(const uint8_t *data, uint16_t length) {
 
       // Check if probe just disconnected and ignore already disconnected probe values
       if (raw_temp == INVALID_RAW_TEMP) {
-        if (probe->has_state()) {
+        if (probe->is_connected()) {
           ESP_LOGI(TAG, "%s Probe %d was disconnected", this->thermometer_id_.c_str(), probe->get_probe_number());
+          probe->set_connected(false);
           probe->publish_state(NAN);
         }
         continue;
       }
 
       // Check if probe just connected
-      if (!probe->has_state()) {
+      if (!probe->is_connected()) {
         ESP_LOGI(TAG, "%s Probe %d was connected", this->thermometer_id_.c_str(), probe->get_probe_number());
+        probe->set_connected(true);
       }
 
       probe->publish_state((uint16_t) (raw_temp / 10.0));
