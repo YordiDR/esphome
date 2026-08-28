@@ -21,7 +21,7 @@ void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if
                                          esp_ble_gattc_cb_param_t *param) {
   switch (event) {
     case ESP_GATTC_SEARCH_CMPL_EVT: {
-      ESP_LOGD(TAG, "Service discovery complete for BT5 Thermometer with ID: %s", this->thermometer_id_.c_str());
+      ESP_LOGD(TAG, "Service discovery complete for %s", this->thermometer_id_.c_str());
       esp32_ble_client::BLECharacteristic *char_desc = this->parent()->get_characteristic(
           esp32_ble_tracker::ESPBTUUID::from_uint16(0xFFB0), esp32_ble_tracker::ESPBTUUID::from_uint16(0xFFB2));
 
@@ -33,24 +33,26 @@ void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if
       break;
     }
     case ESP_GATTC_CONNECT_EVT: {
-      ESP_LOGI(TAG, "Connected to BT5 Thermometer with ID: %s", this->thermometer_id_.c_str());
+      ESP_LOGI(TAG, "Connected to %s", this->thermometer_id_.c_str());
       if (this->connection_sensor_ != nullptr) {
         this->connection_sensor_->publish_state(true);
       }
       break;
     }
     case ESP_GATTC_DISCONNECT_EVT: {
-      ESP_LOGI(TAG, "Disconnected from BT5 Thermometer with ID: %s", this->thermometer_id_.c_str());
+      ESP_LOGI(TAG, "Disconnected from %s", this->thermometer_id_.c_str());
       if (this->connection_sensor_ != nullptr) {
         this->connection_sensor_->publish_state(false);
+      }
+      for (BT5ProbeSensor *probe : this->probes_) {
+        probe->publish_state(NAN);
       }
       break;
     }
     case ESP_GATTC_NOTIFY_EVT: {
-      ESP_LOGD(TAG, "BLE Notify received on handle '%d' from BT5 Thermometer with ID: %s", param->notify.handle,
-               this->thermometer_id_.c_str());
+      ESP_LOGD(TAG, "BLE Notify received on handle '%d' from %s", param->notify.handle, this->thermometer_id_.c_str());
       if (param->notify.handle == this->char_handle_) {
-        ESP_LOGD(TAG, "BLE Notify received for correct handle from BT5 Thermometer with ID: %s, parsing response...",
+        ESP_LOGD(TAG, "BLE Notify received for correct handle from %s, parsing response...",
                  this->thermometer_id_.c_str());
         this->parse_data_(param->notify.value, param->notify.value_len);
       }
@@ -63,18 +65,29 @@ void BT5Thermometer::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if
 
 void BT5Thermometer::parse_data_(const uint8_t *data, uint16_t length) {
   for (BT5ProbeSensor *probe : this->probes_) {
-    uint8_t probe_num = probe->get_probe_number();
-
-    uint16_t high_byte_id = probe_num * 2;
-    uint16_t low_byte_id = (probe_num * 2) + 1;
+    uint16_t high_byte_id = probe->get_probe_number() * 2;
+    uint16_t low_byte_id = high_byte_id + 1;
 
     if (low_byte_id < length) {
       uint16_t raw_temp = (data[high_byte_id] * 256) + data[low_byte_id];
-      ESP_LOGD(TAG, "Parsed BT5 thermometer '%s Probe %d' raw temperature: %d", this->thermometer_id_.c_str(),
-               probe_num, raw_temp);
-      if (raw_temp != 65535) {
-        probe->publish_state((uint16_t) (raw_temp / 10.0));
+      ESP_LOGD(TAG, "Parsed %s Probe %d raw temperature: %d", this->thermometer_id_.c_str(), probe->get_probe_number(),
+               raw_temp);
+
+      // Check if probe just disconnected and ignore already disconnected probe values
+      if (raw_temp == 0xFFFF) {
+        if (probe->get_state() != NAN) {
+          ESP_LOGI(TAG, "%s Probe %d was disconnected", this->thermometer_id_.c_str(), probe->get_probe_number());
+          probe->publish_state(NAN);
+        }
+        continue;
       }
+
+      // Check if probe just connected
+      if (probe->get_state() == NAN) {
+        ESP_LOGI(TAG, "%s Probe %d was connected", this->thermometer_id_.c_str(), probe->get_probe_number());
+      }
+
+      probe->publish_state((uint16_t) (raw_temp / 10.0));
     }
   }
 }
