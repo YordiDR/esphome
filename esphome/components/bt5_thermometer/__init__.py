@@ -1,0 +1,61 @@
+import esphome.codegen as cg
+from esphome.components import ble_client, sensor
+import esphome.config_validation as cv
+from esphome.const import (
+    CONF_ACCURACY_DECIMALS,
+    CONF_DEVICE_CLASS,
+    CONF_ID,
+    CONF_NAME,
+    CONF_STATE_CLASS,
+    CONF_UNIT_OF_MEASUREMENT,
+    DEVICE_CLASS_TEMPERATURE,
+    STATE_CLASS_MEASUREMENT,
+    UNIT_CELSIUS,
+)
+from esphome.core import ID
+
+CONF_NAME_PREFIX = "name_prefix"
+DEPENDENCIES = ["ble_client"]
+
+bt5_thermometer_ns = cg.esphome_ns.namespace("bt5_thermometer")
+BT5Thermometer = bt5_thermometer_ns.class_(
+    "BT5Thermometer", ble_client.BLEClientNode, cg.Component
+)
+BT5ProbeSensor = bt5_thermometer_ns.class_("BT5ProbeSensor", sensor.Sensor)
+
+CONFIG_SCHEMA = (
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(BT5Thermometer),
+            cv.Optional(CONF_NAME_PREFIX, default="BT5"): cv.string,
+        }
+    )
+    .extend(ble_client.BLE_CLIENT_SCHEMA)
+    .extend(cv.COMPONENT_SCHEMA)
+)
+
+
+async def to_code(config):
+    var = cg.new_Pvariable(config[CONF_ID])
+    await cg.register_component(var, config)
+    await ble_client.register_ble_node(var, config)
+
+    # Generate the probe sensors
+    for i in range(1, 7):
+        sens_id = ID(
+            f"{config[CONF_NAME_PREFIX]}_probe_{i}",
+            is_declaration=True,
+            type=BT5ProbeSensor,
+        )
+        sens_config = {
+            CONF_ID: sens_id,
+            CONF_NAME: f"{config[CONF_NAME_PREFIX]} Probe {i}",
+            CONF_UNIT_OF_MEASUREMENT: UNIT_CELSIUS,
+            CONF_ACCURACY_DECIMALS: 1,
+            CONF_DEVICE_CLASS: DEVICE_CLASS_TEMPERATURE,
+            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+        }
+        sens = await sensor.new_sensor(sens_config, i)
+
+        # Injects the custom probe_number property into C++
+        cg.add(var.register_probe(sens))
