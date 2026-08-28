@@ -11,7 +11,6 @@ from esphome.const import (
 )
 from esphome.core import ID
 
-CONF_NAME_PREFIX = "name_prefix"
 DEPENDENCIES = ["ble_client"]
 AUTO_LOAD = ["sensor", "binary_sensor"]
 
@@ -24,8 +23,7 @@ BT5ProbeSensor = bt5_thermometer_ns.class_("BT5ProbeSensor", sensor.Sensor)
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(BT5Thermometer),
-            cv.Optional(CONF_NAME_PREFIX, default="BT5"): cv.string,
+            cv.Required(CONF_ID): cv.declare_id(BT5Thermometer),
         }
     )
     .extend(ble_client.BLE_CLIENT_SCHEMA)
@@ -38,9 +36,14 @@ async def to_code(config):
     await cg.register_component(var, config)
     await ble_client.register_ble_node(var, config)
 
+    # Extract the component ID string to use as the naming base (e.g., "my_thermometer")
+    base_id = config[CONF_ID].id
+    # Create a human-friendly title version for entity names (e.g., "My Thermometer")
+    base_name = base_id.replace("_", " ").title()
+
     # Generate the connection status binary sensor
     conn_sens_id = ID(
-        f"{config[CONF_NAME_PREFIX]}_connected",
+        f"{base_id}_connected",
         is_declaration=True,
         type=binary_sensor.BinarySensor,
     )
@@ -50,7 +53,7 @@ async def to_code(config):
     )(
         {
             CONF_ID: conn_sens_id,
-            CONF_NAME: f"{config[CONF_NAME_PREFIX]} Connected",
+            CONF_NAME: f"{base_name} Connected",
         }
     )
     await binary_sensor.register_binary_sensor(conn_sens, conn_sens_config)
@@ -59,14 +62,12 @@ async def to_code(config):
     # Generate the probe sensors
     for i in range(1, 7):
         sens_id = ID(
-            f"{config[CONF_NAME_PREFIX]}_probe_{i}",
+            f"{base_id}_probe_{i}",
             is_declaration=True,
             type=BT5ProbeSensor,
         )
-        # Create the C++ object and pass 'i' directly to the constructor: BBQProbeSensor(i)
         sens = cg.new_Pvariable(sens_id, i)
 
-        # Register standard sensor configuration properties
         sens_config = sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             accuracy_decimals=0,
@@ -75,7 +76,7 @@ async def to_code(config):
         )(
             {
                 CONF_ID: sens_id,
-                CONF_NAME: f"{config[CONF_NAME_PREFIX]} Probe {i}",
+                CONF_NAME: f"{base_name} Probe {i}",
             }
         )
         await sensor.register_sensor(sens, sens_config)
