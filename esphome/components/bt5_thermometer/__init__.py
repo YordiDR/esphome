@@ -2,12 +2,8 @@ import esphome.codegen as cg
 from esphome.components import ble_client, sensor
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ACCURACY_DECIMALS,
-    CONF_DEVICE_CLASS,
     CONF_ID,
     CONF_NAME,
-    CONF_STATE_CLASS,
-    CONF_UNIT_OF_MEASUREMENT,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
@@ -47,15 +43,21 @@ async def to_code(config):
             is_declaration=True,
             type=BT5ProbeSensor,
         )
-        sens_config = {
-            CONF_ID: sens_id,
-            CONF_NAME: f"{config[CONF_NAME_PREFIX]} Probe {i}",
-            CONF_UNIT_OF_MEASUREMENT: UNIT_CELSIUS,
-            CONF_ACCURACY_DECIMALS: 1,
-            CONF_DEVICE_CLASS: DEVICE_CLASS_TEMPERATURE,
-            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
-        }
-        sens = await sensor.new_sensor(sens_config, i)
+        # Create the C++ object and pass 'i' directly to the constructor: BBQProbeSensor(i)
+        sens = cg.new_Pvariable(sens_id, i)
 
-        # Injects the custom probe_number property into C++
+        # Register standard sensor configuration properties
+        sens_config = sensor.sensor_schema(
+            unit_of_measurement=UNIT_CELSIUS,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_TEMPERATURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+        )(
+            {
+                CONF_ID: sens_id,
+                CONF_NAME: f"{config[CONF_NAME_PREFIX]} Probe {i}",
+            }
+        )
+        await sensor.register_sensor(sens, sens_config)
+
         cg.add(var.register_probe(sens))
