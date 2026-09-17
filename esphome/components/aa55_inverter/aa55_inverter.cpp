@@ -83,7 +83,8 @@ void AA55Inverter::handle_packet(const aa55_bus::AA55RXPacket &packet) {
           ESP_LOGW(LOGGING_TAG,
                    "Inverter %x received a response packet with control code %x and unknown function code %x. "
                    "Skipping...",
-                   this->device_address_, packet.control_code, packet.function_code);
+                   this->device_address_, static_cast<int>(packet.control_code),
+                   static_cast<int>(packet.function_code));
       }
       break;
     case aa55_bus::CONTROL_CODE::READ:
@@ -98,7 +99,8 @@ void AA55Inverter::handle_packet(const aa55_bus::AA55RXPacket &packet) {
           ESP_LOGW(LOGGING_TAG,
                    "Inverter %x received a response packet with control code %x and unknown function code %x. "
                    "Skipping...",
-                   this->device_address_, packet.control_code, packet.function_code);
+                   this->device_address_, static_cast<int>(packet.control_code),
+                   static_cast<int>(packet.function_code));
       }
       break;
     case aa55_bus::CONTROL_CODE::EXECUTE:
@@ -107,7 +109,7 @@ void AA55Inverter::handle_packet(const aa55_bus::AA55RXPacket &packet) {
     default:
       ESP_LOGW(LOGGING_TAG,
                "Inverter %x received a response packet with control code %x and unknown function code %x. Skipping...",
-               this->device_address_, packet.control_code, packet.function_code);
+               this->device_address_, static_cast<int>(packet.control_code), static_cast<int>(packet.function_code));
   }
 }
 
@@ -169,15 +171,16 @@ void AA55Inverter::parse_execute_response(const aa55_bus::AA55RXPacket &packet) 
   for (AA55InverterBaseInput *input : this->inputs_) {
     if (input->handles_response(packet.function_code)) {
       ESP_LOGV(LOGGING_TAG, "Passing execute command response %x (payload %d) from inverter %x to input %s",
-               (uint8_t) packet.function_code, packet.payload[0], this->device_address_, input->get_id().c_str());
+               static_cast<int>(packet.function_code), packet.payload[0], this->device_address_,
+               input->get_id().c_str());
       input->handle_response(packet.function_code, packet.payload[0]);
     }
   }
 }
 
 void AA55Inverter::send_execute_command(aa55_bus::FUNCTION_CODE function_code, uint8_t payload) {
-  ESP_LOGD(LOGGING_TAG, "Sending execute command %x with payload %d to inverter %x", function_code, payload,
-           this->device_address_);
+  ESP_LOGD(LOGGING_TAG, "Sending execute command %x with payload %d to inverter %x", static_cast<int>(function_code),
+           payload, this->device_address_);
   this->parent_bus_->queue_command(aa55_bus::make_execute_packet(this->device_address_, function_code, payload));
 }
 

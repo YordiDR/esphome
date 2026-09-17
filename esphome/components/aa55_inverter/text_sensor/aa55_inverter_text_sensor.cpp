@@ -67,7 +67,7 @@ void AA55InverterTextSensor::parse_work_mode_payload(const uint8_t *payload, uin
   uint32_t work_mode_code = this->parse_int(payload, payload_length);
   if (work_mode_code > 2) {
     char buffer[32];
-    snprintf(buffer, sizeof(buffer), "Unknown: %d",
+    snprintf(buffer, sizeof(buffer), "Unknown: %lu",
              work_mode_code);  // use snprintf instead of to_string to avoid heap allocation
     this->publish_state(buffer);
   } else {
