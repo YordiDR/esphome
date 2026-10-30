@@ -66,6 +66,9 @@ class PylontechGroup : public uart::UARTDevice, public Component {
   /// True if this exact command is queued or waiting for its response.
   bool has_pending(const PylontechCommand &command) const;
   const std::string &get_component_id();
+  /// True once the session handshake is finished and queued commands are being sent.
+  bool is_ready() const { return this->session_state_ == SESSION_STATE::READY; }
+  PROMPT get_prompt() const { return this->prompt_; }
 
  protected:
   // Internal variables
@@ -80,12 +83,25 @@ class PylontechGroup : public uart::UARTDevice, public Component {
   bool waiting_for_response_{false};
   bool response_started_{false};  // '@' seen
 
+  // Console session (pylon> / pylon_debug>)
+  PROMPT prompt_{PROMPT::UNKNOWN};
+  SESSION_STATE session_state_{SESSION_STATE::PROBING};
+  uint8_t probe_count_{0};
+  uint8_t login_attempts_{0};
+  uint32_t session_state_since_{0};
+  bool login_failed_{false};
+  uint32_t login_failed_time_{0};
+
   // Functions
   void send_command_(const PylontechCommand &command);
   void process_rx_();
   void push_char_(char c);
   void process_line_(char *line);
   void finish_response_(bool success);
+  void update_session_(uint32_t now);  // Prompt probing / login state machine
+  void start_login_(uint32_t now);
+  void observe_prompt_(const char *text);  // Records which prompt (if any) `text` starts with
+  void drain_rx_();
   pylontech_battery::PylontechBattery *find_battery_(uint8_t battery_number);
 };
 

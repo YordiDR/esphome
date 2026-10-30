@@ -16,9 +16,28 @@ static constexpr uint32_t RESPONSE_TIMEOUT = 3000;    // Give up waiting for "$$
 static constexpr uint32_t RX_TIME_BUDGET = 30;        // Max milliseconds spent reading UART per loop() call
 static constexpr const char *PYLON_COMMAND_START = "@";
 static constexpr const char *PYLON_COMMAND_END = "$$";
-static constexpr const char *PYLON_PROMPT_PREFIX = "pylon";  // matches "pylon>" and "pylon_debug>" (prompt + echo)
+static constexpr const char *PYLON_PROMPT_PREFIX = "pylon";   // matches "pylon>" and "pylon_debug>" (prompt + echo)
+static constexpr const char *PYLON_PROMPT_NORMAL = "pylon>";  // limited command set
+static constexpr const char *PYLON_PROMPT_DEBUG = "pylon_debug>";  // full command set
+static constexpr const char *PYLON_LOGIN_COMMAND = "login debug";  // elevates pylon> to pylon_debug>
+
+// Console session handling
+static constexpr uint32_t PROMPT_PROBE_INTERVAL = 1000;  // Send a bare newline this often until a prompt shows up
+static constexpr uint8_t MAX_PROMPT_PROBES = 5;          // After this many unanswered probes, carry on regardless
+static constexpr uint32_t LOGIN_TIMEOUT = 2000;          // Wait this long for the pylon_debug> prompt after login
+static constexpr uint8_t MAX_LOGIN_ATTEMPTS = 3;
+static constexpr uint32_t LOGIN_RETRY_DELAY = 60000;  // After failed logins, only try again after this long
 
 enum class COMMAND : uint8_t { PWR, STAT, BAT, UNKNOWN };
+
+// Which prompt the console showed last
+enum class PROMPT : uint8_t { UNKNOWN, NORMAL, DEBUG };
+
+enum class SESSION_STATE : uint8_t {
+  PROBING,     // waiting for the first prompt
+  LOGGING_IN,  // "login debug" sent, waiting for the pylon_debug> prompt
+  READY        // commands may be sent
+};
 
 inline const char *command_to_string(COMMAND command) {
   switch (command) {
