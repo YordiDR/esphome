@@ -55,11 +55,11 @@ pylontech_battery::PylontechBattery *PylontechGroup::find_battery_(uint8_t batte
 }
 
 void PylontechGroup::loop() {
-  const uint32_t now = millis();
-
   if (this->available()) {
     this->process_rx_();
   }
+
+  const uint32_t now = millis();
 
   // Give up on a response that never completes, otherwise the whole group would stall forever.
   if (this->waiting_for_response_ && now - this->last_send_time_ > RESPONSE_TIMEOUT) {
@@ -69,9 +69,9 @@ void PylontechGroup::loop() {
     this->finish_response_(false);
   }
 
-  // Send the next queued command, respecting the minimum delay between commands
+  // Send the next queued command (strict FIFO), respecting the minimum delay between commands
   if (!this->waiting_for_response_ && !this->commands_to_send_.empty() &&
-      now - this->last_done_time_ >= COMMAND_DELAY) {
+      millis() - this->last_done_time_ >= COMMAND_DELAY) {
     this->send_command_(this->commands_to_send_.front());
     this->commands_to_send_.pop();
     ESP_LOGV(LOGGING_TAG, "Remaining commands in queue for group %s: %u", this->id_.c_str(),
