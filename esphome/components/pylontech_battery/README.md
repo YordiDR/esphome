@@ -1,6 +1,10 @@
 # Configuration notes
-- only sensors/inputs which have at least an ID defined will be processed
-- skip_updates can be used to alter the state publish interval. skip_updates is an integer value which describes the amount of update intervals to skip before publishing a new value. The update interval is specified on the inverter. Example: "battery update_interval: 5s, sensor skip_updates 1" means the sensor will skip 1 interval = update every 10s
+- Sensors are only polled when they are configured. The battery works out which console commands (`pwr`, `bat`, `stat`) are needed from the sensors you define: `pwr` for voltage/current/power/SoC/temperature/states, `bat` for the cell voltage sensors, `stat` for SoH.
+- `skip_updates` alters the publish interval of a single sensor. It is an integer: the number of battery update intervals to skip between two publishes. Example: "battery update_interval: 5s, sensor skip_updates: 1" publishes every 10s. A command is only sent to the battery on the update ticks where at least one of its sensors is due, so `skip_updates` on a slow-changing sensor such as SoH (`soh: skip_updates: 11` with a 5s interval = once a minute) also reduces serial traffic.
+- If a command gets no valid answer (timeout or garbage), nothing is published and the sensors are retried on the next update.
+- If a battery has not answered for 5 minutes (BATTERY_OFFLINE_TIMEOUT in const.h), its numeric sensors publish NaN (unavailable in Home Assistant) until it answers again.
+- Current and power keep the console's sign: negative = discharging. Use a `multiply: -1` filter if you want the opposite.
+- The cell voltage delta is in mV, the highest/lowest cell voltage in V.
 
 # Example configuration
 ```yaml
@@ -47,7 +51,7 @@ sensor:
       id: pylontech_group01_battery01_highest_cell_voltage
     lowest_cell_voltage:
       name: Pylontech Battery 1 Lowest Cell Voltage
-      id: pylontech_group01_batter0y1_lowest_cell_voltage
+      id: pylontech_group01_battery01_lowest_cell_voltage
     cell_voltage_delta:
       name: Pylontech Battery 1 Cell Voltage Delta
       id: pylontech_group01_battery01_cell_voltage_delta

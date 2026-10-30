@@ -12,30 +12,31 @@ namespace pylontech_battery {
 class PylontechBattery : public PollingComponent {
  public:
   PylontechBattery(uint8_t battery_number);
-  void setup() override;
   void dump_config() override;
-  void loop() override;
   void update() override;
   void add_sensor(PylontechBatteryBaseSensor *sensor);
   uint8_t get_battery_number();
   void set_parent_group(pylontech_group::PylontechGroup *group);
-  void handle_response(const pylontech_group::PylontechResponse &response);
+
+  /// Called by the group for every payload line of the response to `command` (trimmed, no prompt/echo/@/$$).
+  void handle_line(pylontech_group::COMMAND command, const char *line);
+  /// Called by the group when the response to `command` is complete (success) or timed out (failure).
+  void handle_response_end(pylontech_group::COMMAND command, bool success);
 
  protected:
   // Internal variables
   uint8_t battery_number_;
   std::vector<PylontechBatteryBaseSensor *> sensors_;
   pylontech_group::PylontechGroup *parent_group_{nullptr};
-  // Initialised to max-timeout so the offline check doesn't fire before the inverter has registered
-  uint32_t last_response_received_{UINT32_MAX - BATTERY_OFFLINE_TIMEOUT};
-  bool pwr_command_necessary_{false};   // Whether we need to send a pwr command to this battery to get updated info
-                                        // (toggled based on applicable sensor configuration)
-  bool stat_command_necessary_{false};  // Whether we need to send a stat command to this battery to get updated info
-                                        // (toggled based on applicable sensor configuration)
+  uint32_t last_response_received_{0};
+  bool has_received_response_{false};
+  bool offline_{false};
+  BatteryData scratch_{};  // Filled while a response is being received, published when it completes
 
   // Functions
-  void parse_stat_response(const char *response);
-  void parse_pwr_response(const char *response);
+  void parse_pwr_line_(const char *line);
+  void parse_stat_line_(const char *line);
+  void parse_bat_line_(const char *line);
 };
 
 }  // namespace pylontech_battery

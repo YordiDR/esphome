@@ -37,128 +37,36 @@ PylontechBatterySensor = pylontech_battery_ns.class_(
 )
 SensorType = pylontech_battery_ns.enum("SENSOR_TYPE", is_class=True)
 
-CONFIG_SCHEMA = (
-    cv.Schema(
+
+def _sensor_schema(unit, accuracy_decimals, device_class):
+    return sensor.sensor_schema(
+        class_=PylontechBatterySensor,
+        unit_of_measurement=unit,
+        accuracy_decimals=accuracy_decimals,
+        state_class=STATE_CLASS_MEASUREMENT,
+        device_class=device_class,
+    ).extend(
         {
-            cv.Optional(
-                CONF_VOLTAGE,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=3,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_CURRENT,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_AMPERE,
-                accuracy_decimals=3,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_CURRENT,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_POWER,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_WATT,
-                accuracy_decimals=0,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_POWER,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_SOC,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_PERCENT,
-                accuracy_decimals=0,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_BATTERY,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_SOH,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_PERCENT,
-                accuracy_decimals=0,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_BATTERY,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_TEMPERATURE,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_CELSIUS,
-                accuracy_decimals=1,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_TEMPERATURE,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_HIGHEST_CELL_VOLTAGE,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=3,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_LOWEST_CELL_VOLTAGE,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_VOLT,
-                accuracy_decimals=3,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_CELL_VOLTAGE_DELTA,
-            ): sensor.sensor_schema(
-                class_=PylontechBatterySensor,
-                unit_of_measurement=UNIT_MILLIVOLT,
-                accuracy_decimals=0,
-                state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_VOLTAGE,
-            ).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
+            cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
         }
     )
+
+
+# key -> schema. The key (upper-cased) must match an entry of SENSOR_TYPE in const.h
+SENSORS = {
+    CONF_VOLTAGE: _sensor_schema(UNIT_VOLT, 3, DEVICE_CLASS_VOLTAGE),
+    CONF_CURRENT: _sensor_schema(UNIT_AMPERE, 3, DEVICE_CLASS_CURRENT),
+    CONF_POWER: _sensor_schema(UNIT_WATT, 0, DEVICE_CLASS_POWER),
+    CONF_SOC: _sensor_schema(UNIT_PERCENT, 0, DEVICE_CLASS_BATTERY),
+    CONF_SOH: _sensor_schema(UNIT_PERCENT, 0, DEVICE_CLASS_BATTERY),
+    CONF_TEMPERATURE: _sensor_schema(UNIT_CELSIUS, 1, DEVICE_CLASS_TEMPERATURE),
+    CONF_HIGHEST_CELL_VOLTAGE: _sensor_schema(UNIT_VOLT, 3, DEVICE_CLASS_VOLTAGE),
+    CONF_LOWEST_CELL_VOLTAGE: _sensor_schema(UNIT_VOLT, 3, DEVICE_CLASS_VOLTAGE),
+    CONF_CELL_VOLTAGE_DELTA: _sensor_schema(UNIT_MILLIVOLT, 0, DEVICE_CLASS_VOLTAGE),
+}
+
+CONFIG_SCHEMA = (
+    cv.Schema({cv.Optional(key): schema for key, schema in SENSORS.items()})
     .extend(BATTERY_CHILD_SCHEMA)
     .extend(cv.COMPONENT_SCHEMA)
 )
@@ -167,18 +75,17 @@ CONFIG_SCHEMA = (
 async def to_code(config):
     battery = await cg.get_variable(config[CONF_PYLONTECH_BATTERY_ID])
 
-    for key, conf in config.items():
-        if not isinstance(conf, dict):
+    # Iterate over the known keys instead of inspecting id types, which is fragile with custom classes
+    for key in SENSORS:
+        if key not in config:
             continue
-        id = conf[CONF_ID]
-        if id and id.type == sensor.Sensor:
-            skip_updates = 0
-            if CONF_SKIP_UPDATES in conf:
-                skip_updates = conf[CONF_SKIP_UPDATES]
-
-            var = cg.new_Pvariable(
-                id, key, getattr(SensorType, key.upper()), skip_updates
-            )
-            await cg.register_component(var, conf)
-            await sensor.register_sensor(var, conf)
-            cg.add(battery.add_sensor(var))
+        conf = config[key]
+        var = cg.new_Pvariable(
+            conf[CONF_ID],
+            key,
+            getattr(SensorType, key.upper()),
+            conf[CONF_SKIP_UPDATES],
+        )
+        await cg.register_component(var, conf)
+        await sensor.register_sensor(var, conf)
+        cg.add(battery.add_sensor(var))

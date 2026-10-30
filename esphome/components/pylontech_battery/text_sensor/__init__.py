@@ -18,39 +18,25 @@ PylontechBatteryTextSensor = pylontech_battery_ns.class_(
 )
 SensorType = pylontech_battery_ns.enum("SENSOR_TYPE", is_class=True)
 
-CONFIG_SCHEMA = (
-    cv.Schema(
+
+def _text_sensor_schema():
+    return text_sensor.text_sensor_schema(class_=PylontechBatteryTextSensor).extend(
         {
-            cv.Optional(
-                CONF_STATE,
-            ): text_sensor.text_sensor_schema(class_=PylontechBatteryTextSensor).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                },
-            ),
-            cv.Optional(
-                CONF_VOLTAGE_STATE,
-            ): text_sensor.text_sensor_schema(class_=PylontechBatteryTextSensor).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_CURRENT_STATE,
-            ): text_sensor.text_sensor_schema(class_=PylontechBatteryTextSensor).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
-            cv.Optional(
-                CONF_TEMPERATURE_STATE,
-            ): text_sensor.text_sensor_schema(class_=PylontechBatteryTextSensor).extend(
-                {
-                    cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
-                }
-            ),
+            cv.Optional(CONF_SKIP_UPDATES, default=0): cv.positive_int,
         }
     )
+
+
+# The key (upper-cased) must match an entry of SENSOR_TYPE in const.h
+TEXT_SENSORS = [
+    CONF_STATE,
+    CONF_VOLTAGE_STATE,
+    CONF_CURRENT_STATE,
+    CONF_TEMPERATURE_STATE,
+]
+
+CONFIG_SCHEMA = (
+    cv.Schema({cv.Optional(key): _text_sensor_schema() for key in TEXT_SENSORS})
     .extend(BATTERY_CHILD_SCHEMA)
     .extend(cv.COMPONENT_SCHEMA)
 )
@@ -59,18 +45,16 @@ CONFIG_SCHEMA = (
 async def to_code(config):
     battery = await cg.get_variable(config[CONF_PYLONTECH_BATTERY_ID])
 
-    for key, conf in config.items():
-        if not isinstance(conf, dict):
+    for key in TEXT_SENSORS:
+        if key not in config:
             continue
-        id = conf[CONF_ID]
-        if id and id.type == text_sensor.TextSensor:
-            skip_updates = conf.get(CONF_SKIP_UPDATES, 0)
-            var = cg.new_Pvariable(
-                id,
-                key,
-                getattr(SensorType, key.upper()),
-                skip_updates,
-            )
-            await cg.register_component(var, conf)
-            await text_sensor.register_text_sensor(var, conf)
-            cg.add(battery.add_sensor(var))
+        conf = config[key]
+        var = cg.new_Pvariable(
+            conf[CONF_ID],
+            key,
+            getattr(SensorType, key.upper()),
+            conf[CONF_SKIP_UPDATES],
+        )
+        await cg.register_component(var, conf)
+        await text_sensor.register_text_sensor(var, conf)
+        cg.add(battery.add_sensor(var))

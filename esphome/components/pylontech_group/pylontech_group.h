@@ -1,10 +1,10 @@
 #pragma once
+#include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
-#include <algorithm>
 #include "esphome/core/component.h"
-#include "../uart/uart.h"
+#include "esphome/components/uart/uart.h"
 #include "const.h"
 
 namespace esphome {
@@ -13,27 +13,7 @@ class PylontechBattery;  // Forward declaration of PylontechBattery class to avo
 }
 namespace pylontech_group {
 
-// Ring buffer implementation for UART RX data. This allows us to efficiently parse incoming data without worrying about
-// fragmentation or overflow as much.
-class RingBuffer {
- public:
-  bool push(char byte);
-  char peek(size_t offset) const;        // Read char at offset from the tail without consuming it
-  void consume(size_t bytes_to_remove);  // Discard n bytes from the front
-  void clear();
-  size_t size() const;
-  bool empty() const;
-  bool full() const;
-  void to_string(char *buf, size_t buf_length) const;
-
- private:
-  static constexpr size_t CAPACITY = MAX_BUFFER_LENGTH;
-  char data_[CAPACITY]{};
-  size_t head_{0}, tail_{0}, size_{0};
-};
-
-// Ring queue implementation for outgoing commands. This allows us to queue commands to be sent without worrying about
-// dynamic memory allocation or overflow as much.
+// Fixed-capacity ring queue for outgoing commands (no dynamic allocation).
 template<typename T, size_t CAPACITY> class RingQueue {
  public:
   bool push(T item) {
@@ -81,27 +61,33 @@ class PylontechGroup : public uart::UARTDevice, public Component {
   void dump_config() override;
   void loop() override;
   void add_battery(pylontech_battery::PylontechBattery *battery);
+  /// Queue a command. Silently ignored if an identical command is already queued or in flight.
   void queue_command(const PylontechCommand &command);
+  /// True if this exact command is queued or waiting for its response.
+  bool has_pending(const PylontechCommand &command) const;
   const std::string &get_component_id();
 
  protected:
   // Internal variables
-  RingBuffer receive_buffer_;
   RingQueue<PylontechCommand, MAX_QUEUED_TX_COMMANDS> commands_to_send_;
   std::string id_;
   std::vector<pylontech_battery::PylontechBattery *> configured_batteries_;
-  std::uint32_t last_send_time_{UINT32_MAX -
-                                COMMAND_DELAY};  // Set to max - interval to allow sending immediately on startup
-  PylontechCommand last_sent_command_{};  // Last command sent to batteries, used to correlate responses to commands
+  char line_[MAX_LINE_LENGTH]{};  // Line currently being assembled from UART bytes
+  size_t line_len_{0};
+  uint32_t last_send_time_{0};            // When the in-flight command was sent (for the response timeout)
+  uint32_t last_done_time_{0};            // When the previous command finished (for COMMAND_DELAY)
+  PylontechCommand last_sent_command_{};  // Command in flight, used to route response lines
   bool waiting_for_response_{false};
-  bool response_start_found_{false};
-  bool response_end_found_{false};
-  bool response_last_char_space_{false};  // Used to track if the last character in the response was a space
+  bool response_started_{false};  // '@' seen
 
   // Functions
-  void send_command(const PylontechCommand &command);  // Function that generates the command and sends it via UART
-  void process_rx(const uint32_t &loop_start_time);    // Function that parses incoming data from UART and dispatches
-                                                       // directly to battery objects
+  void send_command_(const PylontechCommand &command);
+  void process_rx_();
+  void push_char_(char c);
+  void process_line_(char *line);
+  void finish_response_(bool success);
+  pylontech_battery::PylontechBattery *find_battery_(uint8_t battery_number);
 };
+
 }  // namespace pylontech_group
 }  // namespace esphome

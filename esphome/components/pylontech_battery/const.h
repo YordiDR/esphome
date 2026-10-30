@@ -1,11 +1,12 @@
 #pragma once
+#include <cmath>
 #include <cstdint>
 #include "../pylontech_group/const.h"
 
 namespace esphome {
 namespace pylontech_battery {
 static constexpr uint32_t BATTERY_OFFLINE_TIMEOUT =
-    300000;  // Time in ms after which a battery is considered offline if no packets have been received
+    300000;  // Time in ms after which a battery is considered offline if no valid response has been received
 
 enum class SENSOR_TYPE : uint8_t {
   VOLTAGE,
@@ -23,67 +24,7 @@ enum class SENSOR_TYPE : uint8_t {
   TEMPERATURE_STATE
 };
 
-constexpr uint8_t get_sensor_payload_location(SENSOR_TYPE type) {
-  switch (type) {
-    case SENSOR_TYPE::VOLTAGE:
-      return 0;
-    case SENSOR_TYPE::CURRENT:
-      return 2;
-    case SENSOR_TYPE::POWER:
-      return 4;
-    case SENSOR_TYPE::STATE:
-      return 6;
-    case SENSOR_TYPE::SOC:
-      return 8;
-    case SENSOR_TYPE::SOH:
-      return 10;
-    case SENSOR_TYPE::TEMPERATURE:
-      return 12;
-    case SENSOR_TYPE::HIGHEST_CELL_VOLTAGE:
-      return 14;
-    case SENSOR_TYPE::LOWEST_CELL_VOLTAGE:
-      return 16;
-    case SENSOR_TYPE::CELL_VOLTAGE_DELTA:
-      return 18;
-    case SENSOR_TYPE::VOLTAGE_STATE:
-      return 20;
-    case SENSOR_TYPE::CURRENT_STATE:
-      return 24;
-    case SENSOR_TYPE::TEMPERATURE_STATE:
-      return 28;
-    default:
-      return 0;
-  }
-}
-
-constexpr uint8_t get_sensor_payload_length(SENSOR_TYPE type) {
-  switch (type) {
-    case SENSOR_TYPE::VOLTAGE:
-      return 4;
-    case SENSOR_TYPE::CURRENT:
-      return 3;
-    case SENSOR_TYPE::POWER:
-      return 7;
-    case SENSOR_TYPE::STATE:
-      return 6;
-    case SENSOR_TYPE::SOC:
-    case SENSOR_TYPE::SOH:
-      return 3;
-    case SENSOR_TYPE::TEMPERATURE:
-      return 5;
-    case SENSOR_TYPE::HIGHEST_CELL_VOLTAGE:
-    case SENSOR_TYPE::LOWEST_CELL_VOLTAGE:
-    case SENSOR_TYPE::CELL_VOLTAGE_DELTA:
-      return 4;
-    case SENSOR_TYPE::VOLTAGE_STATE:
-    case SENSOR_TYPE::CURRENT_STATE:
-    case SENSOR_TYPE::TEMPERATURE_STATE:
-      return 6;
-    default:
-      return 0;
-  }
-}
-
+// Which console command provides the data for a sensor
 constexpr pylontech_group::COMMAND get_sensor_response_source(SENSOR_TYPE type) {
   switch (type) {
     case SENSOR_TYPE::VOLTAGE:
@@ -101,10 +42,37 @@ constexpr pylontech_group::COMMAND get_sensor_response_source(SENSOR_TYPE type) 
     case SENSOR_TYPE::HIGHEST_CELL_VOLTAGE:
     case SENSOR_TYPE::LOWEST_CELL_VOLTAGE:
     case SENSOR_TYPE::CELL_VOLTAGE_DELTA:
-      return pylontech_group::COMMAND::UNKNOWN;
+      return pylontech_group::COMMAND::BAT;
     default:
       return pylontech_group::COMMAND::UNKNOWN;
   }
 }
+
+static constexpr size_t STATE_TEXT_LENGTH = 16;
+
+// Values parsed from one console response. Missing floats are NaN, missing text is an empty string.
+// Units are already converted: V, A, W, degC, %, and mV for the cell voltage delta.
+struct BatteryData {
+  float voltage{NAN};
+  float current{NAN};
+  float power{NAN};
+  float temperature{NAN};
+  float soc{NAN};
+  float soh{NAN};
+  float highest_cell_voltage{NAN};
+  float lowest_cell_voltage{NAN};
+  float cell_voltage_delta{NAN};  // mV
+  char state[STATE_TEXT_LENGTH]{};
+  char voltage_state[STATE_TEXT_LENGTH]{};
+  char current_state[STATE_TEXT_LENGTH]{};
+  char temperature_state[STATE_TEXT_LENGTH]{};
+
+  // Parser bookkeeping
+  uint8_t parsed_fields{0};  // number of recognised lines in this response
+  uint8_t cell_count{0};
+  int32_t cell_min_mv{0};
+  int32_t cell_max_mv{0};
+};
+
 }  // namespace pylontech_battery
 }  // namespace esphome
