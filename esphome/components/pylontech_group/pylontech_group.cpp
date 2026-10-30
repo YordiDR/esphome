@@ -20,7 +20,6 @@ void PylontechGroup::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "Pylontech Group component");
   ESP_LOGCONFIG(LOGGING_TAG, "  Group ID: %s", this->id_.c_str());
   ESP_LOGCONFIG(LOGGING_TAG, "  Batteries: %u", (unsigned) this->configured_batteries_.size());
-  this->check_uart_settings(115200);
 }
 
 void PylontechGroup::add_battery(pylontech_battery::PylontechBattery *battery) {

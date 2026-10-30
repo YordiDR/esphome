@@ -59,7 +59,6 @@ void PylontechBattery::dump_config() {
   ESP_LOGCONFIG(LOGGING_TAG, "  Battery Number: %d", this->battery_number_);
   ESP_LOGCONFIG(LOGGING_TAG, "  Battery group ID: %s", this->parent_group_->get_component_id().c_str());
   ESP_LOGCONFIG(LOGGING_TAG, "  Sensors: %u", (unsigned) this->sensors_.size());
-  LOG_UPDATE_INTERVAL(this);
 }
 
 void PylontechBattery::add_sensor(PylontechBatteryBaseSensor *sensor) { this->sensors_.push_back(sensor); }
