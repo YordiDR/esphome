@@ -1,8 +1,9 @@
 # Configuration notes
-- Sensors are only polled when they are configured. The battery works out which console commands (`pwr`, `bat`, `stat`) are needed from the sensors you define: `pwr` for voltage/current/power/SoC/temperature/states, `bat` for the cell voltage sensors, `stat` for SoH.
+- Sensors are only polled when they are configured. The battery works out which console commands (`pwr`, `bat`, `stat`) are needed from the sensors you define: `pwr` for voltage/current/power/SoC/temperature/states, `bat` for the cell voltage sensors, `stat` for SoH, `info` for the device information text sensors.
 - `skip_updates` alters the publish interval of a single sensor. It is an integer: the number of battery update intervals to skip between two publishes. Example: "battery update_interval: 5s, sensor skip_updates: 1" publishes every 10s. A command is only sent to the battery on the update ticks where at least one of its sensors is due, so `skip_updates` on a slow-changing sensor such as SoH (`soh: skip_updates: 11` with a 5s interval = once a minute) also reduces serial traffic.
 - If a command gets no valid answer (timeout or garbage), nothing is published and the sensors are retried on the next update.
 - If a battery has not answered for 5 minutes (BATTERY_OFFLINE_TIMEOUT in const.h), its numeric sensors publish NaN (unavailable in Home Assistant) until it answers again.
+- Device information text sensors (`device_name`, `board_version`, `board`, `main_software_version`, `software_version`, `boot_version`, `comm_version`, `serial_number`) come from the `info` command. They never change, so they are requested once (and retried until they succeed) and have no `skip_updates` option. They are registered as diagnostic entities.
 - Current and power keep the console's sign: negative = discharging. Use a `multiply: -1` filter if you want the opposite.
 - The cell voltage delta is in mV, the highest/lowest cell voltage in V.
 
@@ -77,3 +78,28 @@ text_sensor:
     temperature_state:
       name: Pylontech Battery 1 Temperature Status
       id: pylontech_group01_battery01_temperature_status
+    device_name:
+      name: Pylontech Battery 1 Device Name
+      id: pylontech_group01_battery01_device_name
+    board_version:
+      name: Pylontech Battery 1 Board Version
+      id: pylontech_group01_battery01_board_version
+    board:
+      name: Pylontech Battery 1 Board
+      id: pylontech_group01_battery01_board
+    main_software_version:
+      name: Pylontech Battery 1 Main Software Version
+      id: pylontech_group01_battery01_main_software_version
+    software_version:
+      name: Pylontech Battery 1 Software Version
+      id: pylontech_group01_battery01_software_version
+    boot_version:
+      name: Pylontech Battery 1 Boot Version
+      id: pylontech_group01_battery01_boot_version
+    comm_version:
+      name: Pylontech Battery 1 Comm Version
+      id: pylontech_group01_battery01_comm_version
+    serial_number:
+      name: Pylontech Battery 1 Serial Number
+      id: pylontech_group01_battery01_serial_number
+```

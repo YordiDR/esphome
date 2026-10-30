@@ -25,7 +25,11 @@ class PylontechBatteryBaseSensor {
     if (this->countdown_ > 0)
       this->countdown_--;
   }
-  void mark_published() { this->countdown_ = this->skip_updates_; }
+  // Device information from `info` never changes, so once published it is not requested again for a very long time
+  // (65535 update intervals, i.e. days). A failed request leaves the sensor due, so it is retried on the next update.
+  void mark_published() {
+    this->countdown_ = this->payload_source_ == pylontech_group::COMMAND::INFO ? UINT16_MAX : this->skip_updates_;
+  }
 
  protected:
   uint16_t skip_updates_{0};

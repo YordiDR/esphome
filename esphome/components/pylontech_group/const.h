@@ -28,7 +28,7 @@ static constexpr uint32_t LOGIN_TIMEOUT = 2000;          // Wait this long for t
 static constexpr uint8_t MAX_LOGIN_ATTEMPTS = 3;
 static constexpr uint32_t LOGIN_RETRY_DELAY = 60000;  // After failed logins, only try again after this long
 
-enum class COMMAND : uint8_t { PWR, STAT, BAT, UNKNOWN };
+enum class COMMAND : uint8_t { PWR, STAT, BAT, INFO, UNKNOWN };
 
 // Which prompt the console showed last
 enum class PROMPT : uint8_t { UNKNOWN, NORMAL, DEBUG };
@@ -47,6 +47,8 @@ inline const char *command_to_string(COMMAND command) {
       return "stat";
     case COMMAND::BAT:
       return "bat";
+    case COMMAND::INFO:
+      return "info";
     default:
       return "unknown";
   }
@@ -71,6 +73,10 @@ inline PylontechCommand make_stat_command(uint8_t battery_number) {
 
 inline PylontechCommand make_bat_command(uint8_t battery_number) {
   return PylontechCommand{battery_number, COMMAND::BAT};
+}
+
+inline PylontechCommand make_info_command(uint8_t battery_number) {
+  return PylontechCommand{battery_number, COMMAND::INFO};
 }
 
 inline void create_command_string(const PylontechCommand &command, char *buffer, size_t buffer_size) {

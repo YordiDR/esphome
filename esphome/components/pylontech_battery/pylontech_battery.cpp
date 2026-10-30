@@ -17,13 +17,25 @@ bool split_kv(const char *line, char *key, size_t key_size, const char **value) 
   const char *colon = strchr(line, ':');
   if (colon == nullptr)
     return false;
+  while (*line == ' ' || *line == '\t')
+    line++;
   const char *key_end = colon;
   while (key_end > line && (key_end[-1] == ' ' || key_end[-1] == '\t'))
     key_end--;
-  const size_t n = key_end - line;
-  if (n == 0 || n >= key_size)
+  // Copy the key with runs of whitespace collapsed to one space: "Soft  version" -> "Soft version"
+  size_t n = 0;
+  bool prev_space = false;
+  for (const char *p = line; p < key_end; p++) {
+    const bool is_space = (*p == ' ' || *p == '\t');
+    if (is_space && prev_space)
+      continue;
+    if (n + 1 >= key_size)
+      return false;
+    key[n++] = is_space ? ' ' : *p;
+    prev_space = is_space;
+  }
+  if (n == 0)
     return false;
-  memcpy(key, line, n);
   key[n] = '\0';
   const char *v = colon + 1;
   while (*v == ' ' || *v == '\t')
@@ -36,6 +48,17 @@ bool parse_long(const char *value, long &out) {
   char *end = nullptr;
   out = strtol(value, &end, 10);
   return end != value;
+}
+
+// Copies the whole value (trailing whitespace removed) into dst
+void copy_value(char *dst, size_t dst_size, const char *value) {
+  size_t n = strlen(value);
+  if (n > dst_size - 1)
+    n = dst_size - 1;
+  while (n > 0 && (value[n - 1] == ' ' || value[n - 1] == '\t'))
+    n--;
+  memcpy(dst, value, n);
+  dst[n] = '\0';
 }
 
 // Copies the first whitespace-delimited token of value into dst
@@ -80,7 +103,7 @@ void PylontechBattery::update() {
   }
 
   // Only ask for the commands that at least one *due* sensor needs
-  bool needed_pwr = false, needed_stat = false, needed_bat = false;
+  bool needed_pwr = false, needed_stat = false, needed_bat = false, needed_info = false;
   for (auto *sensor : this->sensors_) {
     if (!sensor->is_due())
       continue;
@@ -93,6 +116,9 @@ void PylontechBattery::update() {
         break;
       case pylontech_group::COMMAND::BAT:
         needed_bat = true;
+        break;
+      case pylontech_group::COMMAND::INFO:
+        needed_info = true;
         break;
       default:
         break;
@@ -115,6 +141,12 @@ void PylontechBattery::update() {
     this->parent_group_->queue_command(pylontech_group::make_stat_command(this->battery_number_));
   }
 
+  if (needed_info) {
+    ESP_LOGD(LOGGING_TAG, "Queueing info command to group %s for battery %d",
+             this->parent_group_->get_component_id().c_str(), this->battery_number_);
+    this->parent_group_->queue_command(pylontech_group::make_info_command(this->battery_number_));
+  }
+
   // Count down skip_updates for sensors that are not due yet (due sensors wait for their data)
   for (auto *sensor : this->sensors_)
     sensor->tick();
@@ -130,6 +162,9 @@ void PylontechBattery::handle_line(pylontech_group::COMMAND command, const char 
       break;
     case pylontech_group::COMMAND::BAT:
       this->parse_bat_line_(line);
+      break;
+    case pylontech_group::COMMAND::INFO:
+      this->parse_info_line_(line);
       break;
     default:
       break;
@@ -216,6 +251,37 @@ void PylontechBattery::parse_stat_line_(const char *line) {
     this->scratch_.soh = (float) n;
     this->scratch_.parsed_fields++;
   }
+}
+
+void PylontechBattery::parse_info_line_(const char *line) {
+  char key[24];
+  const char *value = nullptr;
+  if (!split_kv(line, key, sizeof(key), &value))
+    return;
+
+  BatteryData &d = this->scratch_;
+  char *target = nullptr;
+  if (strcmp(key, "Device name") == 0)
+    target = d.device_name;
+  else if (strcmp(key, "Board version") == 0)
+    target = d.board_version;
+  else if (strcmp(key, "Board") == 0)
+    target = d.board;
+  else if (strcmp(key, "Main Soft version") == 0)
+    target = d.main_software_version;
+  else if (strcmp(key, "Soft version") == 0)
+    target = d.software_version;
+  else if (strcmp(key, "Boot version") == 0)
+    target = d.boot_version;
+  else if (strcmp(key, "Comm version") == 0)
+    target = d.comm_version;
+  else if (strcmp(key, "Barcode") == 0)  // exposed as "serial_number"
+    target = d.serial_number;
+  if (target == nullptr)
+    return;
+
+  copy_value(target, INFO_TEXT_LENGTH, value);
+  d.parsed_fields++;
 }
 
 void PylontechBattery::parse_bat_line_(const char *line) {

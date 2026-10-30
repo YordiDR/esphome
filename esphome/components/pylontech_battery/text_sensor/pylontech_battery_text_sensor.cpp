@@ -24,6 +24,30 @@ void PylontechBatteryTextSensor::process_data(const BatteryData &data) {
     case SENSOR_TYPE::TEMPERATURE_STATE:
       text = data.temperature_state;
       break;
+    case SENSOR_TYPE::DEVICE_NAME:
+      text = data.device_name;
+      break;
+    case SENSOR_TYPE::BOARD_VERSION:
+      text = data.board_version;
+      break;
+    case SENSOR_TYPE::BOARD:
+      text = data.board;
+      break;
+    case SENSOR_TYPE::MAIN_SOFTWARE_VERSION:
+      text = data.main_software_version;
+      break;
+    case SENSOR_TYPE::SOFTWARE_VERSION:
+      text = data.software_version;
+      break;
+    case SENSOR_TYPE::BOOT_VERSION:
+      text = data.boot_version;
+      break;
+    case SENSOR_TYPE::COMM_VERSION:
+      text = data.comm_version;
+      break;
+    case SENSOR_TYPE::SERIAL_NUMBER:
+      text = data.serial_number;
+      break;
     default:
       return;
   }

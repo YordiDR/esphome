@@ -37,6 +37,7 @@ class PylontechBattery : public PollingComponent {
   void parse_pwr_line_(const char *line);
   void parse_stat_line_(const char *line);
   void parse_bat_line_(const char *line);
+  void parse_info_line_(const char *line);
 };
 
 }  // namespace pylontech_battery
